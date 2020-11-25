@@ -109,7 +109,6 @@ struct task_struct* tid2task(tid_t tid)
         ptask = NULL;
         pelem = pelem->next;
     }
-    printf("ZZZZZ\n");
     return ptask;
 }
 
