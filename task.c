@@ -16,14 +16,6 @@ struct list task_all_list;
 static struct list_elem* task_tag;   //保存队列中的任务节点
 
 /**
- * running_task -   获取当前任务的tcb
- * **/
-struct task_struct* running_task()
-{
-
-}
-
-/**
  * init_task - 初始化任务基本信息
  * **/
 void init_task(struct task_struct* ptask, char* name, int prio)
@@ -44,6 +36,45 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     ptask->elapsed_ticks = 0;
 
     ptask->stack_magic = 0x19991120;
+}
+
+/**
+ * task_create - 创建（初始化）一个任务
+ * @ptask: 任务结构体指针
+ * @function: 任务的功能函数
+ * @func_arg: 任务功能函数的参数
+ * **/
+void task_create(struct task_struct* ptask, task_func function, void* func_arg)
+{
+    ptask->function = function;
+    ptask->func_args = func_arg;
+}
+
+/**
+ * task_start - 创建一个优先级为prio，名字为name的任务
+ * @name: 任务名
+ * @prio: 任务优先级
+ * @func: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg)
+{
+    struct task_struct* task = (struct task_struct*)malloc(sizeof(struct task_struct));
+
+    init_task(task, name, prio);
+    task_create(task, function, func_arg);
+
+    //之前不再队列中
+    assert(!elem_find(&task_ready_list, &task->general_tag));
+    //加入就绪任务队列
+    list_append(&task_ready_list, &task->general_tag);
+
+    //之前不再全部任务队列中
+    assert(!elem_find(&task_all_list, &task->all_list__tag));
+    //加入到全部任务队列
+    list_append(&task_all_list, &task->all_list__tag);
+
+    return task;
 }
 
 /**

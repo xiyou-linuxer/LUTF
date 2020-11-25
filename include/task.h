@@ -6,6 +6,7 @@
 #include <setjmp.h>
 
 typedef int16_t tid_t;
+typedef void task_func(void*);
 
 extern struct list task_ready_list;
 extern struct list task_all_list;
@@ -31,6 +32,10 @@ struct task_struct
 
     struct list_elem general_tag;
     struct list_elem all_list__tag;
+
+    //第一次调度的时候使用
+    task_func* function;
+    void* func_args;
 
     uint32_t stack_magic;   //魔数
 };
