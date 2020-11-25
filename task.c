@@ -44,7 +44,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
  * @function: 任务的功能函数
  * @func_arg: 任务功能函数的参数
  * **/
-void task_create(struct task_struct* ptask, task_func function, void* func_arg)
+static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
     ptask->function = function;
     ptask->func_args = func_arg;
@@ -70,9 +70,9 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
     list_append(&task_ready_list, &task->general_tag);
 
     //之前不再全部任务队列中
-    assert(!elem_find(&task_all_list, &task->all_list__tag));
+    assert(!elem_find(&task_all_list, &task->all_list_tag));
     //加入到全部任务队列
-    list_append(&task_all_list, &task->all_list__tag);
+    list_append(&task_all_list, &task->all_list_tag);
 
     return task;
 }
@@ -89,8 +89,28 @@ static void make_main_task(void)
     init_task(main_task, "main", 31);
 
     //main函数是当前任务，当前还不再task_ready_list中，只加入task_all_list
-    assert(!elem_find(&task_all_list, &main_task->all_list__tag));
-    list_append(&task_all_list, &main_task->all_list__tag);
+    assert(!elem_find(&task_all_list, &main_task->all_list_tag));
+    list_append(&task_all_list, &main_task->all_list_tag);
+}
+
+/**
+ * tid2task - 根据tid获得task_struct
+ * @tid: 任务的tid
+ * **/
+struct task_struct* tid2task(tid_t tid)
+{
+    struct list_elem* pelem = task_all_list.head.next;
+    struct task_struct* ptask = NULL;
+    while(pelem != &task_all_list.tail) {
+        ptask = elem2entry(struct task_struct, all_list_tag, pelem);
+        if(ptask->tid == tid) {
+            break;
+        }
+        ptask = NULL;
+        pelem = pelem->next;
+    }
+    printf("ZZZZZ\n");
+    return ptask;
 }
 
 /**

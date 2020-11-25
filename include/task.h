@@ -31,7 +31,7 @@ struct task_struct
     uint32_t elapsed_ticks;   //任务从开始到结束的总滴答数
 
     struct list_elem general_tag;
-    struct list_elem all_list__tag;
+    struct list_elem all_list_tag;
 
     //第一次调度的时候使用
     task_func* function;
@@ -54,5 +54,20 @@ void init_task(struct task_struct* ptask, char* name, int prio);
  * print_task_info - 打印task信息
  * **/
 void print_task_info(struct task_struct* ptask);
+
+/**
+ * task_start - 创建一个优先级为prio，名字为name的任务
+ * @name: 任务名
+ * @prio: 任务优先级
+ * @func: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg);
+
+/**
+ * tid2task - 根据tid获得task_struct
+ * @tid: 任务的tid
+ * **/
+struct task_struct* tid2task(tid_t tid);
 
 #endif
