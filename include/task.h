@@ -4,6 +4,7 @@
 #include "stdint.h"
 #include "list.h"
 #include <setjmp.h>
+#include <stdbool.h>
 
 typedef int16_t tid_t;
 typedef void task_func(void*);
@@ -35,7 +36,8 @@ struct task_struct
 
     //第一次调度的时候使用
     task_func* function;
-    void* func_args;
+    void* func_args;   // function(func_args);
+    bool first;
 
     uint32_t stack_magic;   //魔数
 };
@@ -69,5 +71,10 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
  * @tid: 任务的tid
  * **/
 struct task_struct* tid2task(tid_t tid);
+
+/**
+ * schedule - 任务调度
+ * **/
+void schedule();
 
 #endif

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <setjmp.h>
 
 static tid_t tid = 0;   //tid递增
 
@@ -14,6 +15,11 @@ struct list task_ready_list;
 struct list task_all_list;
 
 static struct list_elem* task_tag;   //保存队列中的任务节点
+
+/**
+ * switch_to - 任务切换
+ * **/
+static void switch_to_next(struct task_struct* next);
 
 /**
  * init_task - 初始化任务基本信息
@@ -26,9 +32,11 @@ void init_task(struct task_struct* ptask, char* name, int prio)
 
     if(ptask == main_task) {
         ptask->status = TASK_RUNNING;
+        ptask->first = false;
         current_task = ptask;
     } else {
         ptask->status = TASK_READY;
+        ptask->first = true;
     }
 
     ptask->priority = prio;
@@ -136,4 +144,54 @@ void task_init(void)
     make_main_task();
 
     printf("task_init done!\n");
+}
+
+/**
+ * schedule - 任务调度
+ * **/
+void schedule()
+{
+    assert(!elem_find(&task_ready_list, &current_task->general_tag));
+    list_append(&task_ready_list, &current_task->general_tag);
+    current_task->ticks = current_task->priority;
+    current_task->status = TASK_READY;
+
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1);
+    }
+
+    assert(!list_empty(&task_ready_list));
+    task_tag = NULL;
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+
+    //调度
+    switch_to_next(next);   //保存当前，jmp_buf, |  long_jmp();
+}
+
+/**
+ * switch_to - 任务切换
+ * **/
+static void switch_to_next(struct task_struct* next)
+{
+    //保存当前任务上下文
+    int i;
+    i = setjmp(current_task->env);   //保存当前上下文 i = 0
+    if(i != 0) {
+        return;
+    }
+    
+    //第一次执行的任务执行任务的任务函数
+    if(next->first == true) {
+        next->first = false;
+        current_task = next;
+        next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+        return;
+    }
+
+    //不是第一次执行就进行切换
+    current_task = next;
+    longjmp(next->env, 2);
 }

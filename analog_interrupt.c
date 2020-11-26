@@ -1,4 +1,5 @@
 #include "analog_interrupt.h"
+#include "timer.h"
 #include "stdint.h"
 #include "assert.h"
 #include "set_ticker.h"
@@ -9,11 +10,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-uint64_t ticks = 0;
-
 static void signal_headler(int signal_num)
 {
-	printf("ticks = %lld\n", ticks++);
+	printf("ZZZZZZZZZZZZZZZZ\n");
+	interrupt_timer_handler();
+	// printf("ticks = %d\n", ticks);
 }
 
 /**
@@ -23,11 +24,12 @@ void interrupt_enable()
 {
     /* 模拟中断 */
 	signal(SIGALRM, signal_headler);
-	if(set_ticker(1000) == -1) {
+	if(set_ticker(10) == -1) {
 		perror("set_ticker");
 	} else {
 		while(1) {
-			pause();
+			// pause();
+			printf("main\n");
 		}
 	}
 }
