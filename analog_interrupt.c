@@ -12,7 +12,7 @@
 
 static void signal_headler(int signal_num)
 {
-	printf("ZZZZZZZZZZZZZZZZ\n");
+	// printf("ZZZZZZZZZZZZZZZZ\n");
 	interrupt_timer_handler();
 	// printf("ticks = %d\n", ticks);
 }
@@ -28,8 +28,8 @@ void interrupt_enable()
 		perror("set_ticker");
 	} else {
 		while(1) {
-			// pause();
-			printf("main\n");
+			pause();
+			// printf("main\n");
 		}
 	}
 }

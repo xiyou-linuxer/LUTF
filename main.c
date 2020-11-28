@@ -5,20 +5,20 @@
 
 void test(void* args)
 {
-    while(1) {
-        sleep(1);
+    // while(1) {
+        // sleep(1);
         printf("AAAAAAAA\n");
         // pause();
-    }
+    // }
 }
 
 void test1(void* args)
 {
-    while(1) {
+    // while(1) {
         // msleep(100);
         printf("BBBBBBBB\n");
         // pause();
-    }
+    // }
 }
 
 int main()
