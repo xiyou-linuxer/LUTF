@@ -1,11 +1,14 @@
 #include "task.h"
 #include "stdint.h"
 #include "assert.h"
+#include "analog_interrupt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <setjmp.h>
+
+#define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
 
 static tid_t tid = 0;   //tid递增
 
@@ -20,6 +23,39 @@ static struct list_elem* task_tag;   //保存队列中的任务节点
  * switch_to - 任务切换
  * **/
 static void switch_to_next(struct task_struct* next);
+
+/**
+ * fitst_running - 执行任务函数function(func_arg)
+ * @function: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+static void first_running(task_func* function, void* func_arg)
+{
+    // interrupt_enable();
+    function(func_arg); //while(1) printf("AAAAAAAA\n");
+}
+
+/**
+ * task_exit - 任务结束
+ * @task: 结束的任务的task_struct
+ * **/
+void task_exit(struct task_struct* task)
+{
+    task->status = TASK_DIED;
+
+    //在就绪队列中删除
+    if(elem_find(&task_ready_list, &task->general_tag)) {
+        list_remove(&task->general_tag);
+    }
+    
+    //在全部任务队列中删除
+    list_remove(&task->all_list_tag);
+
+    if(task != main_task) {
+        free(task->task_stack);
+        free(task);
+    }
+}
 
 /**
  * init_task - 初始化任务基本信息
@@ -38,6 +74,8 @@ void init_task(struct task_struct* ptask, char* name, int prio)
         ptask->status = TASK_READY;
         ptask->first = true;
     }
+
+    ptask->task_stack = malloc(TASK_STACK_SIZE);
 
     ptask->priority = prio;
     ptask->ticks = prio;
@@ -187,8 +225,10 @@ static void switch_to_next(struct task_struct* next)
     if(next->first == true) {
         next->first = false;
         current_task = next;
-        next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+        // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+        first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
         return;
+        // return next->function(next->func_args);
     }
 
     //不是第一次执行就进行切换

@@ -17,11 +17,33 @@ enum task_status
 {
     TASK_RUNNING,
     TASK_READY,
-    TASK_BLOCKED
+    TASK_BLOCKED,
+    TASK_DIED
+};
+
+/**
+ * task_stack
+ * 任务自己的栈，用于存储线程中待执行的函数
+ * **/
+struct task_stack
+{
+    uint64_t rbp;
+    uint64_t rbx;
+    uint64_t rdi;
+    uint64_t rsi;
+
+    //任务第一次执行时，rip指向待调用的main_task，其他时候rip指向switch_to的返回地址
+    void (*rip) (task_func* func, void* func_arg);
+    
+    //以下供第一次被调度上cpu时使用
+    void (*unused_redaddr);
+    task_func* function;
+    void* func_args;
 };
 
 struct task_struct
 {
+    void* task_stack;
     jmp_buf env;
     tid_t tid;   //任务id
     enum task_status status;   //任务状态
@@ -76,5 +98,11 @@ struct task_struct* tid2task(tid_t tid);
  * schedule - 任务调度
  * **/
 void schedule();
+
+/**
+ * task_exit - 任务结束
+ * @task: 结束的任务的task_struct
+ * **/
+void task_exit(struct task_struct* task);
 
 #endif

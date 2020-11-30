@@ -26,10 +26,5 @@ void interrupt_enable()
 	signal(SIGALRM, signal_headler);
 	if(set_ticker(10) == -1) {
 		perror("set_ticker");
-	} else {
-		while(1) {
-			pause();
-			// printf("main\n");
-		}
 	}
 }

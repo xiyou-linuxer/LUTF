@@ -22,6 +22,4 @@ void interrupt_timer_handler(void)
     } else {
         current_task->ticks--;
     }
-//    ticks++;
-//    printf("ticks = %d\n", ticks);
 }

@@ -6,8 +6,9 @@
 void test(void* args)
 {
     // while(1) {
-        // sleep(1);
+        sleep(1);
         printf("AAAAAAAA\n");
+        task_exit(current_task);
         // pause();
     // }
 }
@@ -15,8 +16,9 @@ void test(void* args)
 void test1(void* args)
 {
     // while(1) {
-        // msleep(100);
+        sleep(1);
         printf("BBBBBBBB\n");
+        task_exit(current_task);
         // pause();
     // }
 }
@@ -32,5 +34,10 @@ int main()
     ptask = tid2task(2);
     print_task_info(ptask);
     interrupt_enable();
+    while(1) {
+        // sleep(1);
+        // printf("MMMMMMMM\n");
+        pause();
+    }
     return 0;
 }
