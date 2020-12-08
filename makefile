@@ -5,7 +5,7 @@ LIB = -I include/
 CFLAGS = -c $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
-		$(BUILD_DIR)/analog_interrupt.o
+		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -23,6 +23,10 @@ $(BUILD_DIR)/task.o: task.c include/task.h \
 
 $(BUILD_DIR)/analog_interrupt.o: analog_interrupt.c include/analog_interrupt.h \
 					include/set_ticker.h include/stdint.h include/assert.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/timer.o: timer.c include/timer.h \
+					include/stdint.h include/task.h include/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 链接 ######

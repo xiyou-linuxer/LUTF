@@ -1,10 +1,14 @@
 #include "task.h"
 #include "stdint.h"
 #include "assert.h"
+#include "analog_interrupt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <setjmp.h>
+
+#define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
 
 static tid_t tid = 0;   //tid递增
 
@@ -16,11 +20,41 @@ struct list task_all_list;
 static struct list_elem* task_tag;   //保存队列中的任务节点
 
 /**
- * running_task -   获取当前任务的tcb
+ * switch_to - 任务切换
  * **/
-struct task_struct* running_task()
-{
+static void switch_to_next(struct task_struct* next);
 
+/**
+ * fitst_running - 执行任务函数function(func_arg)
+ * @function: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+static void first_running(task_func* function, void* func_arg)
+{
+    // interrupt_enable();
+    function(func_arg); //while(1) printf("AAAAAAAA\n");
+}
+
+/**
+ * task_exit - 任务结束
+ * @task: 结束的任务的task_struct
+ * **/
+void task_exit(struct task_struct* task)
+{
+    task->status = TASK_DIED;
+
+    //在就绪队列中删除
+    if(elem_find(&task_ready_list, &task->general_tag)) {
+        list_remove(&task->general_tag);
+    }
+    
+    //在全部任务队列中删除
+    list_remove(&task->all_list_tag);
+
+    if(task != main_task) {
+        free(task->task_stack);
+        free(task);
+    }
 }
 
 /**
@@ -34,16 +68,59 @@ void init_task(struct task_struct* ptask, char* name, int prio)
 
     if(ptask == main_task) {
         ptask->status = TASK_RUNNING;
+        ptask->first = false;
         current_task = ptask;
     } else {
         ptask->status = TASK_READY;
+        ptask->first = true;
     }
+
+    ptask->task_stack = malloc(TASK_STACK_SIZE);
 
     ptask->priority = prio;
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
 
     ptask->stack_magic = 0x19991120;
+}
+
+/**
+ * task_create - 创建（初始化）一个任务
+ * @ptask: 任务结构体指针
+ * @function: 任务的功能函数
+ * @func_arg: 任务功能函数的参数
+ * **/
+static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
+{
+    ptask->function = function;
+    ptask->func_args = func_arg;
+}
+
+/**
+ * task_start - 创建一个优先级为prio，名字为name的任务
+ * @name: 任务名
+ * @prio: 任务优先级
+ * @func: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg)
+{
+    struct task_struct* task = (struct task_struct*)malloc(sizeof(struct task_struct));
+
+    init_task(task, name, prio);
+    task_create(task, function, func_arg);
+
+    //之前不再队列中
+    assert(!elem_find(&task_ready_list, &task->general_tag));
+    //加入就绪任务队列
+    list_append(&task_ready_list, &task->general_tag);
+
+    //之前不再全部任务队列中
+    assert(!elem_find(&task_all_list, &task->all_list_tag));
+    //加入到全部任务队列
+    list_append(&task_all_list, &task->all_list_tag);
+
+    return task;
 }
 
 /**
@@ -58,8 +135,27 @@ static void make_main_task(void)
     init_task(main_task, "main", 31);
 
     //main函数是当前任务，当前还不再task_ready_list中，只加入task_all_list
-    assert(!elem_find(&task_all_list, &main_task->all_list__tag));
-    list_append(&task_all_list, &main_task->all_list__tag);
+    assert(!elem_find(&task_all_list, &main_task->all_list_tag));
+    list_append(&task_all_list, &main_task->all_list_tag);
+}
+
+/**
+ * tid2task - 根据tid获得task_struct
+ * @tid: 任务的tid
+ * **/
+struct task_struct* tid2task(tid_t tid)
+{
+    struct list_elem* pelem = task_all_list.head.next;
+    struct task_struct* ptask = NULL;
+    while(pelem != &task_all_list.tail) {
+        ptask = elem2entry(struct task_struct, all_list_tag, pelem);
+        if(ptask->tid == tid) {
+            break;
+        }
+        ptask = NULL;
+        pelem = pelem->next;
+    }
+    return ptask;
 }
 
 /**
@@ -86,4 +182,56 @@ void task_init(void)
     make_main_task();
 
     printf("task_init done!\n");
+}
+
+/**
+ * schedule - 任务调度
+ * **/
+void schedule()
+{
+    assert(!elem_find(&task_ready_list, &current_task->general_tag));
+    list_append(&task_ready_list, &current_task->general_tag);
+    current_task->ticks = current_task->priority;
+    current_task->status = TASK_READY;
+
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1);
+    }
+
+    assert(!list_empty(&task_ready_list));
+    task_tag = NULL;
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+
+    //调度
+    switch_to_next(next);   //保存当前，jmp_buf, |  long_jmp();
+}
+
+/**
+ * switch_to - 任务切换
+ * **/
+static void switch_to_next(struct task_struct* next)
+{
+    //保存当前任务上下文
+    int i;
+    i = setjmp(current_task->env);   //保存当前上下文 i = 0
+    if(i != 0) {
+        return;
+    }
+    
+    //第一次执行的任务执行任务的任务函数
+    if(next->first == true) {
+        next->first = false;
+        current_task = next;
+        // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+        first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
+        return;
+        // return next->function(next->func_args);
+    }
+
+    //不是第一次执行就进行切换
+    current_task = next;
+    longjmp(next->env, 2);
 }
