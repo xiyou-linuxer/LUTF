@@ -39,7 +39,7 @@ mk_dir:
 	if [[ ! -d $(BUILD_DIR) ]]; then mkdir $(BUILD_DIR);fi
 
 clean:
-	cd $(BUILD_DIR) && rm -f ./*
+	rm main && cd $(BUILD_DIR) && rm -f ./*
 
 build: main
 
