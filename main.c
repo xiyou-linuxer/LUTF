@@ -1,5 +1,5 @@
-#include "task.h"
-#include "analog_interrupt.h"
+#include "include/task.h"
+#include "include/analog_interrupt.h"
 #include <stdio.h>
 #include <unistd.h>
 
