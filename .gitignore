@@ -54,3 +54,4 @@ dkms.conf
 # Intel x86
 *.img
 *.bin
+main
