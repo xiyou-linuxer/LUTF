@@ -31,7 +31,9 @@ int main()
 		perror("set_ticker");
 	} else {
 		while(1) {
-			pause();
+			// pause();
+            sleep(1);
+            printf("AAAAAAA\n");
 		}
 	}
 
@@ -41,11 +43,12 @@ int main()
     i = setjmp(env);
 
     printf("i = %d\n", i);
+
     if(i != 0) {
         exit(1);
     }
 
-    longjmp(env, 2);*/
+    longjmp(env, 3);*/
 
 	return 0;
 }

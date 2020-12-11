@@ -4,8 +4,10 @@
 #include "stdint.h"
 #include "list.h"
 #include <setjmp.h>
+#include <stdbool.h>
 
 typedef int16_t tid_t;
+typedef void task_func(void*);
 
 extern struct list task_ready_list;
 extern struct list task_all_list;
@@ -15,11 +17,33 @@ enum task_status
 {
     TASK_RUNNING,
     TASK_READY,
-    TASK_BLOCKED
+    TASK_BLOCKED,
+    TASK_DIED
+};
+
+/**
+ * task_stack
+ * 任务自己的栈，用于存储线程中待执行的函数
+ * **/
+struct task_stack
+{
+    uint64_t rbp;
+    uint64_t rbx;
+    uint64_t rdi;
+    uint64_t rsi;
+
+    //任务第一次执行时，rip指向待调用的main_task，其他时候rip指向switch_to的返回地址
+    void (*rip) (task_func* func, void* func_arg);
+    
+    //以下供第一次被调度上cpu时使用
+    void (*unused_redaddr);
+    task_func* function;
+    void* func_args;
 };
 
 struct task_struct
 {
+    void* task_stack;
     jmp_buf env;
     tid_t tid;   //任务id
     enum task_status status;   //任务状态
@@ -30,7 +54,12 @@ struct task_struct
     uint32_t elapsed_ticks;   //任务从开始到结束的总滴答数
 
     struct list_elem general_tag;
-    struct list_elem all_list__tag;
+    struct list_elem all_list_tag;
+
+    //第一次调度的时候使用
+    task_func* function;
+    void* func_args;   // function(func_args);
+    bool first;
 
     uint32_t stack_magic;   //魔数
 };
@@ -49,5 +78,31 @@ void init_task(struct task_struct* ptask, char* name, int prio);
  * print_task_info - 打印task信息
  * **/
 void print_task_info(struct task_struct* ptask);
+
+/**
+ * task_start - 创建一个优先级为prio，名字为name的任务
+ * @name: 任务名
+ * @prio: 任务优先级
+ * @func: 任务处理函数
+ * @func_arg: 任务参数
+ * **/
+struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg);
+
+/**
+ * tid2task - 根据tid获得task_struct
+ * @tid: 任务的tid
+ * **/
+struct task_struct* tid2task(tid_t tid);
+
+/**
+ * schedule - 任务调度
+ * **/
+void schedule();
+
+/**
+ * task_exit - 任务结束
+ * @task: 结束的任务的task_struct
+ * **/
+void task_exit(struct task_struct* task);
 
 #endif

@@ -3,7 +3,7 @@
 
 #include "stdint.h"
 
-extern uint64_t ticks;
+// extern uint64_t ticks;
 
 /**
  * interrupt_enable - 中断使能
