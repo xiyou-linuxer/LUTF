@@ -27,23 +27,19 @@ enum task_status
  * **/
 struct task_stack
 {
-    uint64_t rbp;
     uint64_t rbx;
-    uint64_t rdi;
-    uint64_t rsi;
-
-    //任务第一次执行时，rip指向待调用的main_task，其他时候rip指向switch_to的返回地址
-    void (*rip) (task_func* func, void* func_arg);
-    
-    //以下供第一次被调度上cpu时使用
-    void (*unused_redaddr);
-    task_func* function;
-    void* func_args;
+    uint64_t rbp;
+    uint64_t r12;
+    uint64_t r13;
+    uint64_t r14;
+    uint64_t r15;
+    uint64_t rsp;
+    uint64_t rip;
 };
 
 struct task_struct
 {
-    void* task_stack;
+    uint64_t* task_stack;
     jmp_buf env;
     tid_t tid;   //任务id
     enum task_status status;   //任务状态
@@ -60,8 +56,6 @@ struct task_struct
     task_func* function;
     void* func_args;   // function(func_args);
     bool first;
-
-    uint32_t stack_magic;   //魔数
 };
 
 /** 

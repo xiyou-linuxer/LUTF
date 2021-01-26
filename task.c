@@ -75,13 +75,12 @@ void init_task(struct task_struct* ptask, char* name, int prio)
         ptask->first = true;
     }
 
-    ptask->task_stack = malloc(TASK_STACK_SIZE);
-
+    //task_stack指向栈顶
+    uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
+    ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
     ptask->priority = prio;
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
-
-    ptask->stack_magic = 0x19991120;
 }
 
 /**
