@@ -35,12 +35,17 @@ struct task_stack
     uint64_t r15;
     uint64_t rsp;
     uint64_t rip;
+
+    //以下仅供第一次被调度上cpu时使用
+    void (*unused_retaddr);//参数unused_ret只为占位置充数为返回地址
+    // task_func* function;   //由kernel_thread所调用的函数名
+    void* func_arg;   //由kernel_thread所调用的函数所需的参数
 };
 
 struct task_struct
 {
     uint64_t* task_stack;
-    jmp_buf env;
+    sigjmp_buf env;
     tid_t tid;   //任务id
     enum task_status status;   //任务状态
     char name[32];   //任务名
@@ -56,6 +61,7 @@ struct task_struct
     task_func* function;
     void* func_args;   // function(func_args);
     bool first;
+    uint32_t stack_magic;
 };
 
 /** 

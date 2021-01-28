@@ -81,6 +81,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     ptask->priority = prio;
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
+    ptask->stack_magic = 0x19991120;
 }
 
 /**
@@ -91,8 +92,23 @@ void init_task(struct task_struct* ptask, char* name, int prio)
  * **/
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
-    ptask->function = function;
-    ptask->func_args = func_arg;
+    //init sigjmp_buf;
+    sigsetjmp(ptask->env, 1);
+
+    //预留任务栈空间
+    ptask->task_stack -= sizeof(struct task_stack);
+    struct task_stack* ptask_stack = ptask->task_stack;
+    ptask_stack->rsp = ptask_stack;
+    ptask_stack->rip = function;
+    ptask_stack->func_arg = func_arg;
+
+    ptask_stack->rbx = ptask_stack->rbp = ptask_stack->r12 = \
+    ptask_stack->r13 = ptask_stack->r14 = ptask_stack->r15 = 0;
+    // ptask->function = function;
+    // ptask->func_args = func_arg;
+    
+    //构造sigjmp_buf
+
 }
 
 /**
@@ -214,9 +230,9 @@ void schedule()
 static void switch_to_next(struct task_struct* next)
 {
     //保存当前任务上下文
-    int i;
-    i = setjmp(current_task->env);   //保存当前上下文 i = 0
-    if(i != 0) {
+    int ret;
+    ret = setjmp(current_task->env);   //保存当前上下文 i = 0
+    if(ret != 0) {
         return;
     }
     
