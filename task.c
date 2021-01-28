@@ -10,6 +10,16 @@
 
 #define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
 
+#define JB_RBX   0
+#define JB_RBP   1
+#define JB_R12   2
+#define JB_R13   3
+#define JB_R14   4
+#define JB_R15   5
+#define JB_RSP   6
+#define JB_PC    7
+#define JB_SIZE  (8 * 8)
+
 static tid_t tid = 0;   //tid递增
 
 struct task_struct* main_task;   //主任务tcb
@@ -105,10 +115,18 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask_stack->rbx = ptask_stack->rbp = ptask_stack->r12 = \
     ptask_stack->r13 = ptask_stack->r14 = ptask_stack->r15 = 0;
     // ptask->function = function;
-    // ptask->func_args = func_arg;
+    ptask->func_args = func_arg;
     
     //构造sigjmp_buf
-
+    __jmp_buf* jmp_buf = ptask->env->__jmpbuf;
+    **(jmp_buf + JB_RBX*8) = 0;
+    **(jmp_buf + JB_RBP*8) = 0;
+    **(jmp_buf + JB_R12*8) = 0;
+    **(jmp_buf + JB_R13*8) = 0;
+    **(jmp_buf + JB_R14*8) = 0;
+    **(jmp_buf + JB_R15*8) = 0;
+    **(jmp_buf + JB_RSP*8) = ptask_stack->rsp;
+    **(jmp_buf + JB_PC *8) = ptask_stack->rip;
 }
 
 /**
@@ -237,16 +255,16 @@ static void switch_to_next(struct task_struct* next)
     }
     
     //第一次执行的任务执行任务的任务函数
-    if(next->first == true) {
-        next->first = false;
-        current_task = next;
-        // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
-        first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
-        return;
-        // return next->function(next->func_args);
-    }
+    // if(next->first == true) {
+    //     next->first = false;
+    //     current_task = next;
+    //     // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+    //     first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
+    //     return;
+    //     // return next->function(next->func_args);
+    // }
 
     //不是第一次执行就进行切换
     current_task = next;
-    longjmp(next->env, 2);
+    siglongjmp(next->env, 1);
 }
