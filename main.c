@@ -35,7 +35,7 @@ int main()
     print_task_info(ptask);
     interrupt_enable();
     while(1) {
-        // sleep(1);
+        sleep(1000);
         printf("MMMMMMMM\n");
         // pause();
     }

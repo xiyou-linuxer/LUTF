@@ -107,9 +107,9 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
     //预留任务栈空间
     ptask->task_stack -= sizeof(struct task_stack);
-    struct task_stack* ptask_stack = ptask->task_stack;
-    ptask_stack->rsp = ptask_stack;
-    ptask_stack->rip = function;
+    struct task_stack* ptask_stack = (struct task_stack*)ptask->task_stack;
+    ptask_stack->rsp = (uint64_t)ptask_stack;
+    ptask_stack->rip = (uint64_t)function;
     ptask_stack->func_arg = func_arg;
 
     ptask_stack->rbx = ptask_stack->rbp = ptask_stack->r12 = \
@@ -118,7 +118,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->func_args = func_arg;
     
     //构造sigjmp_buf
-    __jmp_buf* jmp_buf = ptask->env->__jmpbuf;
+    __jmp_buf* jmp_buf = (__jmp_buf*)&(ptask->env->__jmpbuf);
     **(jmp_buf + JB_RBX*8) = 0;
     **(jmp_buf + JB_RBP*8) = 0;
     **(jmp_buf + JB_R12*8) = 0;
@@ -239,7 +239,7 @@ void schedule()
     next->status = TASK_RUNNING;
 
     //调度
-    switch_to_next(next);   //保存当前，jmp_buf, |  long_jmp();
+    switch_to_next(next);   //保存当前，sigjmp_buf, |  siglongjmp();
 }
 
 /**
@@ -249,7 +249,7 @@ static void switch_to_next(struct task_struct* next)
 {
     //保存当前任务上下文
     int ret;
-    ret = setjmp(current_task->env);   //保存当前上下文 i = 0
+    ret = sigsetjmp(current_task->env, 1);   //保存当前上下文 i = 0
     if(ret != 0) {
         return;
     }
