@@ -127,6 +127,8 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     **(jmp_buf + JB_R15*8) = 0;
     **(jmp_buf + JB_RSP*8) = ptask_stack->rsp;
     **(jmp_buf + JB_PC *8) = ptask_stack->rip;
+    printf("fc_addr = %p\n", function);
+    printf("ip_addr = %p\n", **(jmp_buf + JB_PC*8));
 }
 
 /**
@@ -264,7 +266,6 @@ static void switch_to_next(struct task_struct* next)
     //     // return next->function(next->func_args);
     // }
 
-    //不是第一次执行就进行切换
     current_task = next;
     siglongjmp(next->env, 1);
 }

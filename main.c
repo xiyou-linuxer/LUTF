@@ -25,6 +25,7 @@ void test1(void* args)
 
 int main()
 {
+    printf("sizeof(long int) = %ld\n", sizeof(long int));
     task_init();
     print_task_info(current_task);
     task_start("test", 31, test, NULL);
@@ -35,7 +36,7 @@ int main()
     print_task_info(ptask);
     interrupt_enable();
     while(1) {
-        sleep(1000);
+        sleep(1);
         printf("MMMMMMMM\n");
         // pause();
     }
