@@ -240,9 +240,8 @@ void task_init(void)
 /**
  * schedule - 任务调度(signal handle)
  * **/
-void schedule()
+void schedule(unsigned long* a)
 {
-    unsigned long a = 0;
     unsigned char* p;
     assert(!elem_find(&task_ready_list, &current_task->general_tag));
     list_append(&task_ready_list, &current_task->general_tag);
@@ -261,7 +260,7 @@ void schedule()
     next->status = TASK_RUNNING;
 
     //调度
-    p = (unsigned char*)((unsigned char*)&a + CONTEXT_OFFSET);
+    p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
     // current_task->context = (struct sigcontext*)p;
     //save current task context
     // memcpy(p, &current_task->context, sizeof(struct sigcontext));
