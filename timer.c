@@ -18,7 +18,7 @@ void interrupt_timer_handler(unsigned long* a)
     // printf("!!!!!!!!!!!!\n");
 
     if(current_task->ticks == 0) {
-        schedule();
+        schedule(a);
     } else {
         current_task->ticks--;
     }
