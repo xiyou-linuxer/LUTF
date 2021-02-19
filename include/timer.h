@@ -8,6 +8,6 @@ extern uint64_t ticks;
 /**
  * interrupt_timer_handler - 时钟中断处理函数
  * **/
-void interrupt_timer_handler(void);
+void interrupt_timer_handler(unsigned long* a);
 
 #endif

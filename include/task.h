@@ -99,7 +99,7 @@ struct task_struct* tid2task(tid_t tid);
 /**
  * schedule - 任务调度
  * **/
-void schedule();
+void schedule(unsigned long* a);
 
 /**
  * task_exit - 任务结束
