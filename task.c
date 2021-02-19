@@ -264,11 +264,13 @@ void schedule()
     p = (unsigned char*)((unsigned char*)&a + CONTEXT_OFFSET);
     // current_task->context = (struct sigcontext*)p;
     //save current task context
-    memcpy(p, &current_task->context, sizeof(struct sigcontext));
+    // memcpy(p, &current_task->context, sizeof(struct sigcontext));
+    memcpy(&current_task->context, p, sizeof(struct sigcontext));
 
     //running next task
     current_task = next;
-    memcpy(&current_task->context, p, sizeof(struct sigcontext));
+    // memcpy(&current_task->context, p, sizeof(struct sigcontext));
+    memcpy(p, &current_task->context, sizeof(struct sigcontext));
 
     // switch_to_next(next);   //保存当前，sigjmp_buf, |  siglongjmp();
 }
