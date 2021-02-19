@@ -141,7 +141,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
     //create task's context
     memset(&ptask->context, 0, sizeof(ptask->context));
-    ptask->context.rsp = ptask->task_stack;
+    ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.rip = function;
 
     // ptask->function = function;
