@@ -5,6 +5,7 @@
 #include "list.h"
 #include <setjmp.h>
 #include <stdbool.h>
+#include <signal.h>
 
 typedef int16_t tid_t;
 typedef void task_func(void*);
@@ -46,6 +47,7 @@ struct task_struct
 {
     uint64_t* task_stack;
     sigjmp_buf env;
+    struct sigcontext context;   //save task's context
     tid_t tid;   //任务id
     enum task_status status;   //任务状态
     char name[32];   //任务名

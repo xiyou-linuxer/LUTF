@@ -7,8 +7,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <setjmp.h>
+#include <signal.h>
 
 #define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
+#define CONTEXT_OFFSET  72
 
 #define JB_RBX   0
 #define JB_RBP   1
@@ -100,6 +102,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
  * @function: 任务的功能函数
  * @func_arg: 任务功能函数的参数
  * **/
+/*
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
     //init sigjmp_buf;
@@ -129,6 +132,21 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     **(jmp_buf + JB_PC *8) = ptask_stack->rip;
     printf("fc_addr = %p\n", function);
     printf("ip_addr = %p\n", **(jmp_buf + JB_PC*8));
+}
+*/
+
+static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
+{
+    //init sigjmp_buf;
+
+    //create task's context
+    memset(&ptask->context, 0, sizeof(ptask->context));
+    ptask->context.rsp = ptask->task_stack;
+    ptask->context.rip = function;
+
+    // ptask->function = function;
+    ptask->func_args = func_arg;
+    
 }
 
 /**
@@ -220,10 +238,12 @@ void task_init(void)
 }
 
 /**
- * schedule - 任务调度
+ * schedule - 任务调度(signal handle)
  * **/
 void schedule()
 {
+    unsigned long a = 0;
+    unsigned char* p;
     assert(!elem_find(&task_ready_list, &current_task->general_tag));
     list_append(&task_ready_list, &current_task->general_tag);
     current_task->ticks = current_task->priority;
@@ -241,12 +261,22 @@ void schedule()
     next->status = TASK_RUNNING;
 
     //调度
-    switch_to_next(next);   //保存当前，sigjmp_buf, |  siglongjmp();
+    p = (unsigned char*)((unsigned char*)&a + CONTEXT_OFFSET);
+    // current_task->context = (struct sigcontext*)p;
+    //save current task context
+    memcpy(p, &current_task->context, sizeof(struct sigcontext));
+
+    //running next task
+    current_task = next;
+    memcpy(&current_task->context, p, sizeof(struct sigcontext));
+
+    // switch_to_next(next);   //保存当前，sigjmp_buf, |  siglongjmp();
 }
 
 /**
  * switch_to - 任务切换
  * **/
+/*
 static void switch_to_next(struct task_struct* next)
 {
     //保存当前任务上下文
@@ -266,6 +296,16 @@ static void switch_to_next(struct task_struct* next)
     //     // return next->function(next->func_args);
     // }
 
+    current_task = next;
+    siglongjmp(next->env, 1);
+}
+*/
+
+static void switch_to_next(struct task_struct* next)
+{
+    //保存当前任务上下文
+
+    
     current_task = next;
     siglongjmp(next->env, 1);
 }
