@@ -12,7 +12,7 @@
 
 static void signal_headler(int signal_num)
 {
-	int long a = 0;
+	unsigned long a = 0;
 	// printf("ZZZZZZZZZZZZZZZZ\n");
 	interrupt_timer_handler(&a);
 	// printf("ticks = %d\n", ticks);
