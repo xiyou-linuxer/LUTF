@@ -141,6 +141,10 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
     //create task's context
     memset(&ptask->context, 0, sizeof(ptask->context));
+    ptask->context.rsi = 0xec5c8fe0;
+    ptask->context.rdi = 0xec5c8fe0;
+    ptask->context.rbx = 0xffffff80;
+    ptask->context.rbp = 0x4;
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.rip = function;
 
@@ -261,6 +265,8 @@ void schedule(unsigned long* a)
 
     //调度
     p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
+    struct sigcontext* context = (struct sigcontext*)p;
+    printf("%x\n%x\n%x\n%x\n", context->rsi, context->rdi, context->rbx, context->rbp);
     // current_task->context = (struct sigcontext*)p;
     //save current task context
     // memcpy(p, &current_task->context, sizeof(struct sigcontext));
