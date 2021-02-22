@@ -139,14 +139,20 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
     //init sigjmp_buf;
+    
+    //init stack space
+    *(ptask->task_stack - 8) =  func_arg;
+    *(ptask->task_stack - 16) = function;
+    *(ptask->task_stack - 24) = 0x0;
+    ptask->task_stack -= 8 * 3;
 
     //create task's context
     memset(&ptask->context, 0, sizeof(ptask->context));
-    ptask->context.rsi = 0x4;
-    ptask->context.rdi = 0x4c315e80;
-    ptask->context.rbx = 0xed3bf400;
-    ptask->context.rbp = 0xffffff80;
-    ptask->context.rsp = ptask->context.rbp =  *(ptask->task_stack);
+    // ptask->context.rsi = 0x4;
+    // ptask->context.rdi = 0x4c315e80;
+    // ptask->context.rbx = 0xed3bf400;
+    // ptask->context.rbp = 0xffffff80;
+    ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.rip = function;
 
     // ptask->function = function;
