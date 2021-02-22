@@ -9,7 +9,7 @@
 #include <setjmp.h>
 #include <signal.h>
 
-#define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
+#define TASK_STACK_SIZE (1024 * 4)   //任务栈的大小
 #define CONTEXT_OFFSET  72
 
 #define JB_RBX   0
@@ -90,6 +90,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     //task_stack指向栈顶
     uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
     ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
+
     ptask->priority = prio;
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
@@ -145,7 +146,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->context.rdi = 0x4c315e80;
     ptask->context.rbx = 0xed3bf400;
     ptask->context.rbp = 0xffffff80;
-    ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
+    ptask->context.rsp = ptask->context.rbp =  *ptask->task_stack;
     ptask->context.rip = function;
 
     // ptask->function = function;
