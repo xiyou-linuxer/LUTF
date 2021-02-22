@@ -146,7 +146,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->context.rdi = 0x4c315e80;
     ptask->context.rbx = 0xed3bf400;
     ptask->context.rbp = 0xffffff80;
-    ptask->context.rsp = ptask->context.rbp =  *ptask->task_stack;
+    ptask->context.rsp = ptask->context.rbp =  *(ptask->task_stack);
     ptask->context.rip = function;
 
     // ptask->function = function;
