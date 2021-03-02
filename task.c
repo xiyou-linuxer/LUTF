@@ -148,14 +148,14 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->task_stack -= 8 * 2;
 
     //create task's context
-    ucontext_t context_temp;
     memset(&ptask->context, 0, sizeof(ptask->context));
-    getcontext(&context_temp);
-    memcpy(&ptask->context, &context_temp.uc_mcontext, sizeof(struct sigcontext));
     // ptask->context.rsi = 0x4;
     // ptask->context.rdi = 0x4c315e80;
     // ptask->context.rbx = 0xed3bf400;
     // ptask->context.rbp = 0xffffff80;
+
+    //ss should be 0x2b
+    ptask->context.__pad0 = 0x2b;
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.cs = 0x33;
     ptask->context.rip = function;

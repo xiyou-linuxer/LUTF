@@ -2,6 +2,7 @@
 #include "analog_interrupt.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <ucontext.h>
 
 void test(void* args)
 {
