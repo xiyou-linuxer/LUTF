@@ -24,6 +24,9 @@ void test1(void* args)
 
 int main()
 {
+    // int a;
+    // test(NULL);
+    printf("0x%lx\n", test);
     printf("sizeof(long int) = %ld\n", sizeof(long int));
     task_init();
     print_task_info(current_task);

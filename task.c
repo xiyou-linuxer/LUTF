@@ -8,6 +8,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <ucontext.h>
 
 #define TASK_STACK_SIZE (1024 * 4)   //任务栈的大小
 #define CONTEXT_OFFSET  72
@@ -142,17 +143,21 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     
     //init stack space
     *(ptask->task_stack - 8) =  func_arg;
-    *(ptask->task_stack - 16) = function;
-    *(ptask->task_stack - 24) = 0x0;
-    ptask->task_stack -= 8 * 3;
+    // *(ptask->task_stack - 16) = function;
+    *(ptask->task_stack - 16) = 0x0;
+    ptask->task_stack -= 8 * 2;
 
     //create task's context
+    ucontext_t context_temp;
     memset(&ptask->context, 0, sizeof(ptask->context));
+    getcontext(&context_temp);
+    memcpy(&ptask->context, &context_temp.uc_mcontext, sizeof(struct sigcontext));
     // ptask->context.rsi = 0x4;
     // ptask->context.rdi = 0x4c315e80;
     // ptask->context.rbx = 0xed3bf400;
     // ptask->context.rbp = 0xffffff80;
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
+    ptask->context.cs = 0x33;
     ptask->context.rip = function;
 
     // ptask->function = function;
