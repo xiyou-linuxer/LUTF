@@ -31,7 +31,8 @@ int main()
     printf("sizeof(long int) = %ld\n", sizeof(long int));
     task_init();
     print_task_info(current_task);
-    task_start("test", 31, test, NULL);
+    int a = 1;
+    task_start("test", 31, test, &a);
     task_start("tast1", 31, test1, NULL);
     struct task_struct* ptask = tid2task(1);
     print_task_info(ptask);

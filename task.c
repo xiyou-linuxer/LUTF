@@ -139,6 +139,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
+    printf("func_arg = 0x%lx\n", func_arg);
     //init sigjmp_buf;
     
     //init stack space
@@ -159,10 +160,10 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.cs = 0x33;
     ptask->context.rip = function;
+    ptask->context.rdi = func_arg;
 
     // ptask->function = function;
-    ptask->func_args = func_arg;
-    
+    // ptask->func_args = func_arg;
 }
 
 /**
@@ -278,7 +279,7 @@ void schedule(unsigned long* a)
     //调度
     p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
     struct sigcontext* context = (struct sigcontext*)p;
-    printf("%x\n%x\n%x\n%x\n", context->rsi, context->rdi, context->rbx, context->rbp);
+    // printf("%x\n%x\n%x\n%x\n", context->rsi, context->rdi, context->rbx, context->rbp);
     // current_task->context = (struct sigcontext*)p;
     //save current task context
     // memcpy(p, &current_task->context, sizeof(struct sigcontext));
