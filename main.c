@@ -7,6 +7,7 @@
 void test(void* args)
 {
     while(1) {
+        sleep(1);
         printf("AAAAAAAA\n");
         // task_exit(current_task);
         // pause();

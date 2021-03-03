@@ -38,14 +38,13 @@ static struct list_elem* task_tag;   //保存队列中的任务节点
 static void switch_to_next(struct task_struct* next);
 
 /**
- * fitst_running - 执行任务函数function(func_arg)
+ * task_entrance - 执行任务函数function(func_arg)
  * @function: 任务处理函数
  * @func_arg: 任务参数
  * **/
-static void first_running(task_func* function, void* func_arg)
+static void task_entrance(task_func* function, void* func_arg)
 {
-    // interrupt_enable();
-    function(func_arg); //while(1) printf("AAAAAAAA\n");
+    function(func_arg);
 }
 
 /**
@@ -143,10 +142,10 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     //init sigjmp_buf;
     
     //init stack space
-    *(ptask->task_stack - 8) =  func_arg;
+    // *(ptask->task_stack - 8) =  func_arg;
     // *(ptask->task_stack - 16) = function;
-    *(ptask->task_stack - 16) = 0x0;
-    ptask->task_stack -= 8 * 2;
+    // *(ptask->task_stack - 16) = 0x0;
+    // ptask->task_stack -= 8 * 2;
 
     //create task's context
     memset(&ptask->context, 0, sizeof(ptask->context));
@@ -159,8 +158,9 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->context.__pad0 = 0x2b;
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.cs = 0x33;
-    ptask->context.rip = function;
-    ptask->context.rdi = func_arg;
+    ptask->context.rip = task_entrance;
+    ptask->context.rdi = function;
+    ptask->context.rsi = func_arg;
 
     // ptask->function = function;
     // ptask->func_args = func_arg;
