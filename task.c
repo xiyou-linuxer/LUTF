@@ -7,8 +7,21 @@
 #include <unistd.h>
 #include <string.h>
 #include <setjmp.h>
+#include <signal.h>
+#include <ucontext.h>
 
-#define TASK_STACK_SIZE 1024 * 4   //任务栈的大小
+#define TASK_STACK_SIZE (1024 * 4)   //任务栈的大小
+#define CONTEXT_OFFSET  72
+
+#define JB_RBX   0
+#define JB_RBP   1
+#define JB_R12   2
+#define JB_R13   3
+#define JB_R14   4
+#define JB_R15   5
+#define JB_RSP   6
+#define JB_PC    7
+#define JB_SIZE  (8 * 8)
 
 static tid_t tid = 0;   //tid递增
 
@@ -78,9 +91,11 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     //task_stack指向栈顶
     uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
     ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
+
     ptask->priority = prio;
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
+    ptask->stack_magic = 0x19991120;
 }
 
 /**
@@ -89,10 +104,66 @@ void init_task(struct task_struct* ptask, char* name, int prio)
  * @function: 任务的功能函数
  * @func_arg: 任务功能函数的参数
  * **/
+/*
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
-    ptask->function = function;
+    //init sigjmp_buf;
+    sigsetjmp(ptask->env, 1);
+
+    //预留任务栈空间
+    ptask->task_stack -= sizeof(struct task_stack);
+    struct task_stack* ptask_stack = (struct task_stack*)ptask->task_stack;
+    ptask_stack->rsp = (uint64_t)ptask_stack;
+    ptask_stack->rip = (uint64_t)function;
+    ptask_stack->func_arg = func_arg;
+
+    ptask_stack->rbx = ptask_stack->rbp = ptask_stack->r12 = \
+    ptask_stack->r13 = ptask_stack->r14 = ptask_stack->r15 = 0;
+    // ptask->function = function;
     ptask->func_args = func_arg;
+    
+    //构造sigjmp_buf
+    __jmp_buf* jmp_buf = (__jmp_buf*)&(ptask->env->__jmpbuf);
+    **(jmp_buf + JB_RBX*8) = 0;
+    **(jmp_buf + JB_RBP*8) = 0;
+    **(jmp_buf + JB_R12*8) = 0;
+    **(jmp_buf + JB_R13*8) = 0;
+    **(jmp_buf + JB_R14*8) = 0;
+    **(jmp_buf + JB_R15*8) = 0;
+    **(jmp_buf + JB_RSP*8) = ptask_stack->rsp;
+    **(jmp_buf + JB_PC *8) = ptask_stack->rip;
+    printf("fc_addr = %p\n", function);
+    printf("ip_addr = %p\n", **(jmp_buf + JB_PC*8));
+}
+*/
+
+static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
+{
+    printf("func_arg = 0x%lx\n", func_arg);
+    //init sigjmp_buf;
+    
+    //init stack space
+    *(ptask->task_stack - 8) =  func_arg;
+    // *(ptask->task_stack - 16) = function;
+    *(ptask->task_stack - 16) = 0x0;
+    ptask->task_stack -= 8 * 2;
+
+    //create task's context
+    memset(&ptask->context, 0, sizeof(ptask->context));
+    // ptask->context.rsi = 0x4;
+    // ptask->context.rdi = 0x4c315e80;
+    // ptask->context.rbx = 0xed3bf400;
+    // ptask->context.rbp = 0xffffff80;
+
+    //ss should be 0x2b
+    ptask->context.__pad0 = 0x2b;
+    ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
+    ptask->context.cs = 0x33;
+    ptask->context.rip = function;
+    ptask->context.rdi = func_arg;
+
+    // ptask->function = function;
+    // ptask->func_args = func_arg;
 }
 
 /**
@@ -184,10 +255,11 @@ void task_init(void)
 }
 
 /**
- * schedule - 任务调度
+ * schedule - 任务调度(signal handle)
  * **/
-void schedule()
+void schedule(unsigned long* a)
 {
+    unsigned char* p;
     assert(!elem_find(&task_ready_list, &current_task->general_tag));
     list_append(&task_ready_list, &current_task->general_tag);
     current_task->ticks = current_task->priority;
@@ -205,32 +277,55 @@ void schedule()
     next->status = TASK_RUNNING;
 
     //调度
-    switch_to_next(next);   //保存当前，jmp_buf, |  long_jmp();
+    p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
+    struct sigcontext* context = (struct sigcontext*)p;
+    // printf("%x\n%x\n%x\n%x\n", context->rsi, context->rdi, context->rbx, context->rbp);
+    // current_task->context = (struct sigcontext*)p;
+    //save current task context
+    // memcpy(p, &current_task->context, sizeof(struct sigcontext));
+    memcpy(&current_task->context, p, sizeof(struct sigcontext));
+
+    //running next task
+    current_task = next;
+    // memcpy(&current_task->context, p, sizeof(struct sigcontext));
+    memcpy(p, &current_task->context, sizeof(struct sigcontext));
+
+    // switch_to_next(next);   //保存当前，sigjmp_buf, |  siglongjmp();
 }
 
 /**
  * switch_to - 任务切换
  * **/
+/*
 static void switch_to_next(struct task_struct* next)
 {
     //保存当前任务上下文
-    int i;
-    i = setjmp(current_task->env);   //保存当前上下文 i = 0
-    if(i != 0) {
+    int ret;
+    ret = sigsetjmp(current_task->env, 1);   //保存当前上下文 i = 0
+    if(ret != 0) {
         return;
     }
     
     //第一次执行的任务执行任务的任务函数
-    if(next->first == true) {
-        next->first = false;
-        current_task = next;
-        // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
-        first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
-        return;
-        // return next->function(next->func_args);
-    }
+    // if(next->first == true) {
+    //     next->first = false;
+    //     current_task = next;
+    //     // next->function(next->func_args);   //while(1) printf("AAAAAAAA\n");
+    //     first_running(next->function, next->func_args);   //while(1) printf("AAAAAAAA\n");
+    //     return;
+    //     // return next->function(next->func_args);
+    // }
 
-    //不是第一次执行就进行切换
     current_task = next;
-    longjmp(next->env, 2);
+    siglongjmp(next->env, 1);
+}
+*/
+
+static void switch_to_next(struct task_struct* next)
+{
+    //保存当前任务上下文
+
+    
+    current_task = next;
+    siglongjmp(next->env, 1);
 }

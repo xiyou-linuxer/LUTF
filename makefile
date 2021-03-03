@@ -2,7 +2,7 @@ BUILD_DIR = ./build
 CC = gcc
 LD = gcc
 LIB = -I include/
-CFLAGS = -c $(LIB)
+CFLAGS = -c -g $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o

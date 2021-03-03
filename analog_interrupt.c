@@ -12,8 +12,9 @@
 
 static void signal_headler(int signal_num)
 {
+	unsigned long a = 0;
 	// printf("ZZZZZZZZZZZZZZZZ\n");
-	interrupt_timer_handler();
+	interrupt_timer_handler(&a);
 	// printf("ticks = %d\n", ticks);
 }
 
