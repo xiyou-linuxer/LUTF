@@ -29,3 +29,11 @@ void interrupt_enable()
 		perror("set_ticker");
 	}
 }
+
+/**
+ * interrupt_disable - shield interrupt
+ * **/
+void interrupt_disable()
+{
+	signal(SIGALRM, NULL);
+}

@@ -46,6 +46,7 @@ struct task_stack
 struct task_struct
 {
     uint64_t* task_stack;
+    uint8_t* stack_min_addr;
     sigjmp_buf env;
     struct sigcontext context;   //save task's context
     tid_t tid;   //任务id

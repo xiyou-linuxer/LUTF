@@ -45,6 +45,8 @@ static void switch_to_next(struct task_struct* next);
 static void task_entrance(task_func* function, void* func_arg)
 {
     function(func_arg);
+    task_exit(current_task);
+    while(1);
 }
 
 /**
@@ -53,6 +55,8 @@ static void task_entrance(task_func* function, void* func_arg)
  * **/
 void task_exit(struct task_struct* task)
 {
+    interrupt_disable();
+
     task->status = TASK_DIED;
 
     //在就绪队列中删除
@@ -64,9 +68,11 @@ void task_exit(struct task_struct* task)
     list_remove(&task->all_list_tag);
 
     if(task != main_task) {
-        free(task->task_stack);
+        free(task->stack_min_addr);
         free(task);
     }
+
+    interrupt_enable();
 }
 
 /**
@@ -89,6 +95,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
 
     //task_stack指向栈顶
     uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
+    ptask->stack_min_addr = stack_min_addr;
     ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
 
     ptask->priority = prio;
