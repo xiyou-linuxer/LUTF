@@ -8,7 +8,8 @@ void test(void* args)
 {
     // while(1) {
         // sleep(1);
-        printf("AAAAAAAA\n");
+        // printf("A, a = %d\n", a++);
+        printf("AAAAAAAAAAAA\n");
         // task_exit(current_task);
         // task_exit(current_task);
         // pause();
@@ -18,8 +19,9 @@ void test(void* args)
 void test1(void* args)
 {
     while(1) {
-        sleep(1);
-        printf("BBBBBBBB\n");
+        // sleep(1);
+        // printf("B, a = %d\n", a++);
+        printf("BBBBBBBBBBBB\n");
         // task_exit(current_task);
         // pause();
     }
@@ -43,8 +45,8 @@ int main()
     interrupt_enable();
     while(1) {
         sleep(1);
-        printf("MMMMMMMM\n");
-        // pause();
+        // printf("MMMMMMMM\n");
+        pause();
     }
     return 0;
 }
