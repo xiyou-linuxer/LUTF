@@ -7,7 +7,8 @@ ASFLAGS = -f elf64
 CFLAGS = -c -g $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
-		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o
+		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
+		$(BUILD_DIR)/bitmap.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -29,6 +30,10 @@ $(BUILD_DIR)/analog_interrupt.o: analog_interrupt.c include/analog_interrupt.h \
 
 $(BUILD_DIR)/timer.o: timer.c include/timer.h \
 					include/stdint.h include/task.h include/assert.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/bitmap.o: bitmap.c include/bitmap.h \
+					include/stdint.h include/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######
