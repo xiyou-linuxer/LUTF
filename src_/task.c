@@ -32,13 +32,11 @@ struct list task_all_list;
 struct list task_died_list;
 
 static struct list_elem* task_tag;   //保存队列中的任务节点
+static void died_task_schedule();
 
-/**
- * switch_to - 任务切换
- * **/
-static void switch_to_next(struct task_struct* next);
+extern void context_swap(struct sigcontext* context);
 
-/**
+/*
  * task_entrance - 执行任务函数function(func_arg)
  * @function: 任务处理函数
  * @func_arg: 任务参数
@@ -77,7 +75,10 @@ void task_exit(struct task_struct* task)
     interrupt_enable();
 
     //任务空转，等待下次时钟信号
-    while(1);
+    // while(1);
+
+    //上下文转换为next的上下文
+    died_task_schedule();
 }
 
 /**
@@ -350,10 +351,10 @@ static void switch_to_next(struct task_struct* next)
 /**
  * died_task_schedule - 死亡任务主动让出CPU
  * **/
-void died_task_schedule()
+static void died_task_schedule()
 {
-    interrupt_disable();
-
+    //屏蔽信号，退出后要打开信号
+    
     //获取下一个要调度的任务
     if(list_empty(&task_ready_list)) {
         printf("task_ready_list is empty!\n");
@@ -368,43 +369,5 @@ void died_task_schedule()
 
     //进行上下文切换，将上下文切换为要执行任务的上下文
     current_task = next;
-
-    interrupt_enable();
+    context_swap(&current_task->context);
 }
-/*
-struct sigcontext
-{
-  __uint64_t r8;
-  __uint64_t r9;
-  __uint64_t r10;
-  __uint64_t r11;
-  __uint64_t r12;
-  __uint64_t r13;
-  __uint64_t r14;
-  __uint64_t r15;
-  __uint64_t rdi;
-  __uint64_t rsi;
-  __uint64_t rbp;
-  __uint64_t rbx;
-  __uint64_t rdx;
-  __uint64_t rax;
-  __uint64_t rcx;
-  __uint64_t rsp;
-  __uint64_t rip;
-  __uint64_t eflags;
-  unsigned short cs;
-  unsigned short gs;
-  unsigned short fs;
-  unsigned short __pad0;
-  __uint64_t err;
-  __uint64_t trapno;
-  __uint64_t oldmask;
-  __uint64_t cr2;
-  __extension__ union
-    {
-      struct _fpstate * fpstate;
-      __uint64_t __fpstate_word;
-    };
-  __uint64_t __reserved1 [8];
-};
-*/
