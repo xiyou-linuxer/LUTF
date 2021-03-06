@@ -44,6 +44,7 @@ struct list task_died_list;
 
 static struct list_elem* task_tag;   //保存队列中的任务节点
 static void died_task_schedule();
+static void block_task_schedule();
 
 extern void context_set(struct sigcontext* context);
 extern void context_swap(struct sigcontext* c_context, struct sigcontext* n_context);
@@ -266,7 +267,7 @@ void task_block(enum task_status status)
     //status取值为BLOCKED,WAITTING,HANGING，这三种状态不会被调度
     assert(((status == TASK_BLOCKED) || (status == TASK_WAITING) || (status == TASK_HANGING)));
     current_task->status = status;   //置其状态为status
-    // schedule();   //将当前线程换下处理器!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    block_task_schedule();   //将当前线程换下处理器
 }
 
 /**
