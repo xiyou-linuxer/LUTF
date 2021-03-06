@@ -6,14 +6,14 @@
 
 void test(void* args)
 {
-    while(1) {
+    // while(1) {
         // sleep(1);
         // printf("A, a = %d\n", a++);
         printf("AAAAAAAAAAAA\n");
         // task_exit(current_task);
         // task_exit(current_task);
         // pause();
-    }
+    // }
 }
 
 void test1(void* args)

@@ -19,7 +19,9 @@ enum task_status
     TASK_RUNNING,
     TASK_READY,
     TASK_BLOCKED,
-    TASK_DIED
+    TASK_DIED,
+    TASK_WAITING,
+    TASK_HANGING
 };
 
 /**
@@ -107,5 +109,11 @@ void schedule(unsigned long* a);
  * @task: 结束的任务的task_struct
  * **/
 void task_exit(struct task_struct* task);
+
+/**
+ * task_block - 当前任务阻塞自己，标志其状态为status
+ * @status: 转变为该状态
+ * **/
+void task_block(enum task_status status);
 
 #endif
