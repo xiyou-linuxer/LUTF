@@ -1,8 +1,8 @@
 [bits 64]
 section .text
-global context_swap
-context_swap:
-    ;切换任务 context_swap(&next_context)
+global context_set
+context_set:
+    ;切换任务 context_set(&next_context)
     ;rdi中存储sigcontext的地址
     mov r8, [rdi]
     mov r9, [rdi + 8*1]
