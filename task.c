@@ -2,6 +2,7 @@
 #include "stdint.h"
 #include "assert.h"
 #include "analog_interrupt.h"
+#include "bitmap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,6 +26,16 @@
 
 static tid_t tid = 0;   //tid递增
 
+//tid位图，最大支持1024个tid
+uint8_t tid_bitmap_bits[128] = {0};
+
+struct tid_pool
+{
+    struct bitmap tid_bitmap;   //tid位图
+    uint32_t tid_start;   //起始tid
+    // struct lock tid_lock;   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+};
+
 struct task_struct* main_task;   //主任务tcb
 struct task_struct* current_task;   //记录当前任务
 struct list task_ready_list;
@@ -34,7 +45,8 @@ struct list task_died_list;
 static struct list_elem* task_tag;   //保存队列中的任务节点
 static void died_task_schedule();
 
-extern void context_swap(struct sigcontext* context);
+extern void context_set(struct sigcontext* context);
+extern void context_swap(struct sigcontext* c_context, struct sigcontext* n_context);
 
 /*
  * task_entrance - 执行任务函数function(func_arg)
@@ -246,6 +258,18 @@ struct task_struct* tid2task(tid_t tid)
 }
 
 /**
+ * task_block - 当前任务阻塞自己，标志其状态为status
+ * @status: 转变为该状态
+ * **/
+void task_block(enum task_status status)
+{
+    //status取值为BLOCKED,WAITTING,HANGING，这三种状态不会被调度
+    assert(((status == TASK_BLOCKED) || (status == TASK_WAITING) || (status == TASK_HANGING)));
+    current_task->status = status;   //置其状态为status
+    // schedule();   //将当前线程换下处理器!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+}
+
+/**
  * print_task_info - 打印task信息
  * **/
 void print_task_info(struct task_struct* ptask)
@@ -369,5 +393,25 @@ static void died_task_schedule()
 
     //进行上下文切换，将上下文切换为要执行任务的上下文
     current_task = next;
-    context_swap(&current_task->context);
+    context_set(&current_task->context);
+}
+
+static void block_task_schedule()
+{
+    //获取下一个要调度的任务
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1);
+    }
+
+    assert(!list_empty(&task_ready_list));
+    task_tag = NULL;
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+
+    //进行上下文切换，将上下文切换为要执行任务的上下文
+    struct task_struct* temp = current_task;
+    current_task = next;
+    context_swap(&temp->context, &next->context);
 }
