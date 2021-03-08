@@ -7,7 +7,7 @@ context_swap:
     ;保存当前上下文
     mov [rdi], r8
     mov [rdi + 8*1], r9
-    mov [rdi + 8*2]， r10
+    mov [rdi + 8*2], r10
     mov [rdi + 8*3], r11
     mov [rdi + 8*4], r12
     mov [rdi + 8*5], r13

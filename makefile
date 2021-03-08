@@ -8,7 +8,7 @@ CFLAGS = -c -g $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
-		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o
+		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -21,7 +21,7 @@ $(BUILD_DIR)/assert.o: assert.c include/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/task.o: task.c include/task.h \
-					include/list.h include/assert.h
+					include/list.h include/assert.h include/bitmap.h include/debug.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/analog_interrupt.o: analog_interrupt.c include/analog_interrupt.h \
@@ -34,6 +34,10 @@ $(BUILD_DIR)/timer.o: timer.c include/timer.h \
 
 $(BUILD_DIR)/bitmap.o: bitmap.c include/bitmap.h \
 					include/stdint.h include/assert.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/debug.o: debug.c include/debug.h \
+					include/analog_interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######
