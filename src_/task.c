@@ -271,6 +271,25 @@ void task_block(enum task_status status)
 }
 
 /**
+ * task_unblock - 将任务ptask解除阻塞
+ * @ptask: 要解除阻塞的任务结构体指针
+ * **/
+void task_unblock(struct task_struct* ptask)
+{
+    interrupt_disable();
+    assert(((ptask->status == TASK_BLOCKED) || (ptask->status == TASK_WAITING) || (ptask->status == TASK_HANGING)));
+    if(ptask->status != TASK_READY) {
+        assert(!elem_find(&task_ready_list, &ptask->general_tag));
+        if(elem_find(&task_ready_list, &ptask->general_tag)) {
+            PANIC("thread_unblock: block thread in ready list\n");
+        }
+        list_push(&task_ready_list, &ptask->general_tag);   //放到队列的最前面，使其尽快得到调度
+        ptask->status = TASK_READY;
+    }
+    interrupt_enable();
+}
+
+/**
  * print_task_info - 打印task信息
  * **/
 void print_task_info(struct task_struct* ptask)
