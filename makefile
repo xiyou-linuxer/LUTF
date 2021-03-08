@@ -8,7 +8,7 @@ CFLAGS = -c -g $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
-		$(BUILD_DIR)/bitmap.o
+		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -38,6 +38,9 @@ $(BUILD_DIR)/bitmap.o: bitmap.c include/bitmap.h \
 
 ###### 汇编文件 ######
 $(BUILD_DIR)/died_context_swap.o: died_context_swap.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/context_swap.o: context_swap.asm
 	$(AS) $(ASFLAGS) $< -o $@
 
 ###### 链接 ######
