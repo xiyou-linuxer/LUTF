@@ -116,4 +116,10 @@ void task_exit(struct task_struct* task);
  * **/
 void task_block(enum task_status status);
 
+/**
+ * task_unblock - 将任务ptask解除阻塞
+ * @ptask: 要解除阻塞的任务结构体指针
+ * **/
+void task_unblock(struct task_struct* ptask);
+
 #endif
