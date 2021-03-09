@@ -4,6 +4,7 @@
 #include "analog_interrupt.h"
 #include "debug.h"
 #include "assert.h"
+#include "task.h"
 #include <stdio.h>
 
 
@@ -35,11 +36,11 @@ void sema_down(struct semaphore* psema)
         }
         //若信号量的值等于0，则当前线程把自己加入该锁的等待队列，然后阻塞自己
         list_append(&psema->waiters, &current_task->general_tag);
-        thread_block(TASK_BLOCKED);   //阻塞线程，直到被唤醒
+        task_block(TASK_BLOCKED);   //阻塞线程，直到被唤醒
     }
     //若value为1或被唤醒，会执行下面的代码，也就是获得了锁
     psema->value--;
-    ASSERT(psema->value == 0);
+    assert(psema->value == 0);
     //恢复之前的中断状态
     interrupt_enable();
 }
@@ -49,13 +50,13 @@ void sema_up(struct semaphore* psema)
 {
     //关中断，保证原子操作
     interrupt_disable();
-    ASSERT(psema->value == 0);
+    assert(psema->value == 0);
     if(!list_empty(&psema->waiters)) {
         struct task_struct* thread_blocked = elem2entry(struct task_struct, general_tag, list_pop(&psema->waiters));
-        thread_unblock(thread_blocked);
+        task_unblock(thread_blocked);
     }
     psema->value++;
-    ASSERT(psema->value == 1);
+    assert(psema->value == 1);
     interrupt_enable();
 }
 
@@ -63,10 +64,10 @@ void sema_up(struct semaphore* psema)
 void lock_acquire(struct lock* plock)
 {
     //排除曾经自己已经持有锁但还未将其释放的情况
-    if(plock->holder != running_thread()) {
+    if(plock->holder != current_task) {
         sema_down(&plock->semaphore);   //对信号量P操作，原子操作
-        plock->holder = running_thread();
-        ASSERT(plock->holder_repeat_nr == 0);
+        plock->holder = current_task;
+        assert(plock->holder_repeat_nr == 0);
         plock->holder_repeat_nr = 1;
     } else {
         plock->holder_repeat_nr++;
@@ -76,12 +77,12 @@ void lock_acquire(struct lock* plock)
 /*释放锁plock*/
 void lock_release(struct lock* plock)
 {
-    ASSERT(plock->holder == running_thread());
+    assert(plock->holder == current_task);
     if(plock->holder_repeat_nr > 1) {
         plock->holder_repeat_nr--;
         return;
     }
-    ASSERT(plock->holder_repeat_nr == 1);
+    assert(plock->holder_repeat_nr == 1);
 
     plock->holder = NULL;   //吧锁的持有者置空放在V操作之前
     plock->holder_repeat_nr = 0;

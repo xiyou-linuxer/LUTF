@@ -8,7 +8,8 @@ CFLAGS = -c -g $(LIB)
 
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
-		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o
+		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
+		$(BUILD_DIR)/console.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -38,6 +39,15 @@ $(BUILD_DIR)/bitmap.o: lib/bitmap.c include/bitmap.h \
 
 $(BUILD_DIR)/debug.o: task/debug.c include/debug.h \
 					include/analog_interrupt.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/sync.o: task/sync.c include/sync.h \
+					include/stdint.h include/list.h include/analog_interrupt.h \
+					include/debug.h include/assert.h include/task.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/console.o: device/console.c include/console.h \
+					include/sync.h include/task.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######

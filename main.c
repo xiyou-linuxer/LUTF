@@ -1,27 +1,32 @@
 #include "task.h"
 #include "analog_interrupt.h"
+#include "console.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <ucontext.h>
 
 void test(void* args)
 {
-    // while(1) {
-        // sleep(1);
+    char* str = args;
+    while(1) {
+        sleep(1);
         // printf("A, a = %d\n", a++);
-        printf("AAAAAAAAAAAA\n");
+        // printf("AAAAAAAAAAAA\n");
+        console_put_str(str);
         // task_exit(current_task);
         // task_exit(current_task);
         // pause();
-    // }
+    }
 }
 
 void test1(void* args)
 {
+    char* str = args;
     while(1) {
-        // sleep(1);
+        sleep(1);
         // printf("B, a = %d\n", a++);
-        printf("BBBBBBBBBBBB\n");
+        // printf("BBBBBBBBBBBB\n");
+        console_put_str(str);
         // task_exit(current_task);
         // pause();
     }
@@ -33,11 +38,12 @@ int main()
     // test(NULL);
     printf("0x%lx\n", test);
     printf("sizeof(long int) = %ld\n", sizeof(long int));
+    console_init();
     task_init();
     print_task_info(current_task);
     int a = 1;
-    task_start("test", 31, test, &a);
-    task_start("tast1", 31, test1, NULL);
+    task_start("test", 31, test, "argA");
+    task_start("tast1", 31, test1, "argB");
     struct task_struct* ptask = tid2task(1);
     print_task_info(ptask);
     ptask = tid2task(2);
