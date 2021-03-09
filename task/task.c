@@ -2,6 +2,8 @@
 #include "stdint.h"
 #include "assert.h"
 #include "analog_interrupt.h"
+#include "bitmap.h"
+#include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,27 +27,38 @@
 
 static tid_t tid = 0;   //tid递增
 
+//tid位图，最大支持1024个tid
+uint8_t tid_bitmap_bits[128] = {0};
+
+struct tid_pool
+{
+    struct bitmap tid_bitmap;   //tid位图
+    uint32_t tid_start;   //起始tid
+    // struct lock tid_lock;   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+};
+
 struct task_struct* main_task;   //主任务tcb
 struct task_struct* current_task;   //记录当前任务
 struct list task_ready_list;
 struct list task_all_list;
+struct list task_died_list;
 
 static struct list_elem* task_tag;   //保存队列中的任务节点
+static void died_task_schedule();
+static void block_task_schedule();
 
-/**
- * switch_to - 任务切换
- * **/
-static void switch_to_next(struct task_struct* next);
+extern void context_set(struct sigcontext* context);
+extern void context_swap(struct sigcontext* c_context, struct sigcontext* n_context);
 
-/**
- * fitst_running - 执行任务函数function(func_arg)
+/*
+ * task_entrance - 执行任务函数function(func_arg)
  * @function: 任务处理函数
  * @func_arg: 任务参数
  * **/
-static void first_running(task_func* function, void* func_arg)
+static void task_entrance(task_func* function, void* func_arg)
 {
-    // interrupt_enable();
-    function(func_arg); //while(1) printf("AAAAAAAA\n");
+    function(func_arg);
+    task_exit(current_task);
 }
 
 /**
@@ -54,6 +67,9 @@ static void first_running(task_func* function, void* func_arg)
  * **/
 void task_exit(struct task_struct* task)
 {
+    //关闭中断
+    interrupt_disable();
+
     task->status = TASK_DIED;
 
     //在就绪队列中删除
@@ -65,9 +81,18 @@ void task_exit(struct task_struct* task)
     list_remove(&task->all_list_tag);
 
     if(task != main_task) {
-        free(task->task_stack);
+        free(task->stack_min_addr);
         free(task);
     }
+
+    //打开中断
+    interrupt_enable();
+
+    //任务空转，等待下次时钟信号
+    // while(1);
+
+    //上下文转换为next的上下文
+    died_task_schedule();
 }
 
 /**
@@ -89,8 +114,11 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     }
 
     //task_stack指向栈顶
-    uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
-    ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
+    // uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
+    ptask->stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
+    // ptask->stack_min_addr = stack_min_addr;
+    // ptask->task_stack = (uint64_t*)(stack_min_addr + TASK_STACK_SIZE);
+    ptask->task_stack = (uint64_t*)(ptask->stack_min_addr + TASK_STACK_SIZE);
 
     ptask->priority = prio;
     ptask->ticks = prio;
@@ -143,10 +171,10 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     //init sigjmp_buf;
     
     //init stack space
-    *(ptask->task_stack - 8) =  func_arg;
+    // *(ptask->task_stack - 8) =  func_arg;
     // *(ptask->task_stack - 16) = function;
-    *(ptask->task_stack - 16) = 0x0;
-    ptask->task_stack -= 8 * 2;
+    // *(ptask->task_stack - 16) = 0x0;
+    // ptask->task_stack -= 8 * 2;
 
     //create task's context
     memset(&ptask->context, 0, sizeof(ptask->context));
@@ -159,8 +187,9 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
     ptask->context.__pad0 = 0x2b;
     ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
     ptask->context.cs = 0x33;
-    ptask->context.rip = function;
-    ptask->context.rdi = func_arg;
+    ptask->context.rip = task_entrance;
+    ptask->context.rdi = function;
+    ptask->context.rsi = func_arg;
 
     // ptask->function = function;
     // ptask->func_args = func_arg;
@@ -175,6 +204,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
  * **/
 struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg)
 {
+    interrupt_disable();
     struct task_struct* task = (struct task_struct*)malloc(sizeof(struct task_struct));
 
     init_task(task, name, prio);
@@ -190,6 +220,7 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
     //加入到全部任务队列
     list_append(&task_all_list, &task->all_list_tag);
 
+    interrupt_enable();
     return task;
 }
 
@@ -229,6 +260,37 @@ struct task_struct* tid2task(tid_t tid)
 }
 
 /**
+ * task_block - 当前任务阻塞自己，标志其状态为status
+ * @status: 转变为该状态
+ * **/
+void task_block(enum task_status status)
+{
+    //status取值为BLOCKED,WAITTING,HANGING，这三种状态不会被调度
+    assert(((status == TASK_BLOCKED) || (status == TASK_WAITING) || (status == TASK_HANGING)));
+    current_task->status = status;   //置其状态为status
+    block_task_schedule();   //将当前线程换下处理器
+}
+
+/**
+ * task_unblock - 将任务ptask解除阻塞
+ * @ptask: 要解除阻塞的任务结构体指针
+ * **/
+void task_unblock(struct task_struct* ptask)
+{
+    interrupt_disable();
+    assert(((ptask->status == TASK_BLOCKED) || (ptask->status == TASK_WAITING) || (ptask->status == TASK_HANGING)));
+    if(ptask->status != TASK_READY) {
+        assert(!elem_find(&task_ready_list, &ptask->general_tag));
+        if(elem_find(&task_ready_list, &ptask->general_tag)) {
+            PANIC("thread_unblock: block thread in ready list\n");
+        }
+        list_push(&task_ready_list, &ptask->general_tag);   //放到队列的最前面，使其尽快得到调度
+        ptask->status = TASK_READY;
+    }
+    interrupt_enable();
+}
+
+/**
  * print_task_info - 打印task信息
  * **/
 void print_task_info(struct task_struct* ptask)
@@ -247,6 +309,7 @@ void task_init(void)
     printf("task_init start.\n");
     list_init(&task_ready_list);
     list_init(&task_all_list);
+    list_init(&task_died_list);
     
     //将当前main函数创建为任务
     make_main_task();
@@ -328,4 +391,48 @@ static void switch_to_next(struct task_struct* next)
     
     current_task = next;
     siglongjmp(next->env, 1);
+}
+
+/**
+ * died_task_schedule - 死亡任务主动让出CPU
+ * **/
+static void died_task_schedule()
+{
+    //屏蔽信号，退出后要打开信号
+    
+    //获取下一个要调度的任务
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1);
+    }
+
+    assert(!list_empty(&task_ready_list));
+    task_tag = NULL;
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+
+    //进行上下文切换，将上下文切换为要执行任务的上下文
+    current_task = next;
+    context_set(&current_task->context);
+}
+
+static void block_task_schedule()
+{
+    //获取下一个要调度的任务
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1);
+    }
+
+    assert(!list_empty(&task_ready_list));
+    task_tag = NULL;
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+
+    //进行上下文切换，将上下文切换为要执行任务的上下文
+    struct task_struct* temp = current_task;
+    current_task = next;
+    context_swap(&temp->context, &next->context);
 }

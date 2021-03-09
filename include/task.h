@@ -19,7 +19,9 @@ enum task_status
     TASK_RUNNING,
     TASK_READY,
     TASK_BLOCKED,
-    TASK_DIED
+    TASK_DIED,
+    TASK_WAITING,
+    TASK_HANGING
 };
 
 /**
@@ -46,6 +48,7 @@ struct task_stack
 struct task_struct
 {
     uint64_t* task_stack;
+    uint8_t* stack_min_addr;
     sigjmp_buf env;
     struct sigcontext context;   //save task's context
     tid_t tid;   //任务id
@@ -106,5 +109,17 @@ void schedule(unsigned long* a);
  * @task: 结束的任务的task_struct
  * **/
 void task_exit(struct task_struct* task);
+
+/**
+ * task_block - 当前任务阻塞自己，标志其状态为status
+ * @status: 转变为该状态
+ * **/
+void task_block(enum task_status status);
+
+/**
+ * task_unblock - 将任务ptask解除阻塞
+ * @ptask: 要解除阻塞的任务结构体指针
+ * **/
+void task_unblock(struct task_struct* ptask);
 
 #endif
