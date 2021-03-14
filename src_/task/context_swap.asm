@@ -37,8 +37,8 @@ context_swap:
     mov r13, [rsi + 8*5]
     mov r14, [rsi + 8*6]
     mov r15, [rsi + 8*7]
-    ;mov rdi, [rsi + 8*8]
-    mov rsi, [rsi + 8*9]
+    mov rdi, [rsi + 8*8]
+    ;mov rsi, [rsi + 8*9]
     mov rbp, [rsi + 8*10]
     mov rbx, [rsi + 8*11]
     mov rdx, [rsi + 8*12]
@@ -50,7 +50,7 @@ context_swap:
     push rcx
 
     mov rcx, [rsi + 8*14]
-    mov rdi, [rsi + 8*8]
+    mov rsi, [rsi + 8*9]
 
     ret
 

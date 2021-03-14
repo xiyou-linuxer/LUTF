@@ -21,4 +21,9 @@ void console_release();
  * **/
 void console_put_str(char* str);
 
+/**
+ * console_put_char - 输出字符
+ * **/
+void console_put_char(char ch);
+
 #endif

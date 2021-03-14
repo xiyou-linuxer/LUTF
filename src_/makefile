@@ -9,7 +9,7 @@ CFLAGS = -c -g $(LIB)
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
-		$(BUILD_DIR)/console.o
+		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -47,7 +47,12 @@ $(BUILD_DIR)/sync.o: task/sync.c include/sync.h \
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/console.o: device/console.c include/console.h \
-					include/sync.h include/task.h
+					include/sync.h include/task.h include/ioqueue.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ioqueue.o: device/ioqueue.c include/ioqueue.h \
+					include/analog_interrupt.h include/stdint.h include/debug.h include/assert.h \
+					include/console.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######
@@ -67,7 +72,8 @@ mk_dir:
 	if [ ! -d $(BUILD_DIR) ]; then mkdir $(BUILD_DIR);fi
 
 clean:
-	cd $(BUILD_DIR) && rm -f ./*
+	# rm main && cd $(BUILD_DIR) && rm -f ./*
+	cd $(BUILD_DIR) && rm -rf ./*
 
 build: main
 
