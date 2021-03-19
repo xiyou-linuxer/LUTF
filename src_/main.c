@@ -2,6 +2,7 @@
 #include "analog_interrupt.h"
 #include "console.h"
 #include "ioqueue.h"
+#include "init.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <ucontext.h>
@@ -45,9 +46,9 @@ int main()
     // test(NULL);
     printf("0x%lx\n", test);
     printf("sizeof(long int) = %ld\n", sizeof(long int));
-    console_init();
-    ioqueue_init(&buf);
-    task_init();
+    // console_init();
+    // task_init();
+    init();
     print_task_info(current_task);
     int a = 1;
     task_start("test", 31, test, "argA ");

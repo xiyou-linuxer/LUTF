@@ -9,7 +9,7 @@ CFLAGS = -c -g $(LIB)
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
-		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o
+		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o
 
 ###### 编译 ######
 $(BUILD_DIR)/main.o: main.c include/task.h
@@ -22,7 +22,7 @@ $(BUILD_DIR)/assert.o: lib/assert.c include/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/task.o: task/task.c include/task.h \
-					include/list.h include/assert.h include/bitmap.h include/debug.h
+					include/list.h include/assert.h include/bitmap.h include/debug.h include/sync.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/analog_interrupt.o: interrupt/analog_interrupt.c include/analog_interrupt.h \
@@ -53,6 +53,10 @@ $(BUILD_DIR)/console.o: device/console.c include/console.h \
 $(BUILD_DIR)/ioqueue.o: device/ioqueue.c include/ioqueue.h \
 					include/analog_interrupt.h include/stdint.h include/debug.h include/assert.h \
 					include/console.h
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/init.o: task/init.c include/init.h \
+					include/task.h include/console.h include/ioqueue.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######

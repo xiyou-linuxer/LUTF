@@ -4,6 +4,7 @@
 #include "analog_interrupt.h"
 #include "bitmap.h"
 #include "debug.h"
+#include "sync.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -25,23 +26,22 @@
 #define JB_PC    7
 #define JB_SIZE  (8 * 8)
 
-static tid_t tid = 0;   //tid递增
+// static tid_t tid = 0;   //tid递增
 
 //tid位图，最大支持1024个tid
-uint8_t tid_bitmap_bits[128] = {0};
+uint8_t tid_bitmap_bits[1250000] = {0};
 
 struct tid_pool
 {
     struct bitmap tid_bitmap;   //tid位图
     uint32_t tid_start;   //起始tid
-    // struct lock tid_lock;   //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-};
+    struct lock tid_lock;
+}tid_pool;
 
 struct task_struct* main_task;   //主任务tcb
 struct task_struct* current_task;   //记录当前任务
 struct list task_ready_list;
 struct list task_all_list;
-struct list task_died_list;
 
 static struct list_elem* task_tag;   //保存队列中的任务节点
 static void died_task_schedule();
@@ -50,7 +50,7 @@ static void block_task_schedule();
 extern void context_set(struct sigcontext* context);
 extern void context_swap(struct sigcontext* c_context, struct sigcontext* n_context);
 
-/*
+/**
  * task_entrance - 执行任务函数function(func_arg)
  * @function: 任务处理函数
  * @func_arg: 任务参数
@@ -59,6 +59,42 @@ static void task_entrance(task_func* function, void* func_arg)
 {
     function(func_arg);
     task_exit(current_task);
+}
+
+/**
+ * tid_pool_init - 初始化tid池
+ * **/
+static void tid_pool_init(void)
+{
+    tid_pool.tid_start = 1;
+    tid_pool.tid_bitmap.bits = tid_bitmap_bits;
+    tid_pool.tid_bitmap.btmp_bytes_len = 128;
+    bitmap_init(&tid_pool.tid_bitmap);
+    lock_init(&tid_pool.tid_lock);
+}
+
+/**
+ * 分配tid
+ * **/
+static tid_t allocate_tid(void)
+{
+    lock_acquire(&tid_pool.tid_lock);
+    int32_t bit_idx = bitmap_scan(&tid_pool.tid_bitmap, 1);
+    bitmap_set(&tid_pool.tid_bitmap, bit_idx, 1);
+    lock_release(&tid_pool.tid_lock);
+    return (bit_idx + tid_pool.tid_start);
+}
+
+/**
+ * release_tid - 释放tid
+ * @tid: 要释放的tid
+ * **/
+void release_tid(tid_t tid)
+{
+    lock_acquire(&tid_pool.tid_lock);
+    int32_t bit_idx = tid - tid_pool.tid_start;
+    bitmap_set(&tid_pool.tid_bitmap, bit_idx, 0);
+    lock_release(&tid_pool.tid_lock);
 }
 
 /**
@@ -85,14 +121,28 @@ void task_exit(struct task_struct* task)
         free(task);
     }
 
+    //归还tid
+    release_tid(task->tid);
+
     //打开中断
     interrupt_enable();
 
-    //任务空转，等待下次时钟信号
-    // while(1);
-
     //上下文转换为next的上下文
     died_task_schedule();
+}
+
+/**
+ * tid_check - 对比任务的tid
+ * @pelem: 要比较的任务节点
+ * @tid: 要对比的tid
+ * **/
+static bool tid_check(struct list_elem* pelem, int32_t tid)
+{
+    struct task_struct* ptask = elem2entry(struct task_struct, all_list_tag, pelem);
+    if(ptask->tid == tid) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -101,7 +151,8 @@ void task_exit(struct task_struct* task)
 void init_task(struct task_struct* ptask, char* name, int prio)
 {
     memset(ptask, 0, sizeof(*ptask));
-    ptask->tid = tid++;
+    // ptask->tid = tid++;
+    // ptask->tid = allocate_tid();
     strcpy(ptask->name, name);
 
     if(ptask == main_task) {
@@ -112,6 +163,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
         ptask->status = TASK_READY;
         ptask->first = true;
     }
+    ptask->tid = allocate_tid();
 
     //task_stack指向栈顶
     // uint8_t* stack_min_addr = (uint8_t*)malloc(TASK_STACK_SIZE);
@@ -246,16 +298,22 @@ static void make_main_task(void)
  * **/
 struct task_struct* tid2task(tid_t tid)
 {
-    struct list_elem* pelem = task_all_list.head.next;
-    struct task_struct* ptask = NULL;
-    while(pelem != &task_all_list.tail) {
-        ptask = elem2entry(struct task_struct, all_list_tag, pelem);
-        if(ptask->tid == tid) {
-            break;
-        }
-        ptask = NULL;
-        pelem = pelem->next;
+    // struct list_elem* pelem = task_all_list.head.next;
+    // struct task_struct* ptask = NULL;
+    // while(pelem != &task_all_list.tail) {
+    //     ptask = elem2entry(struct task_struct, all_list_tag, pelem);
+    //     if(ptask->tid == tid) {
+    //         break;
+    //     }
+    //     ptask = NULL;
+    //     pelem = pelem->next;
+    // }
+    struct list_elem* pelem = list_traversal(&task_all_list, tid_check, tid);
+    if(pelem == NULL) {
+        return NULL;
     }
+    struct task_struct* ptask = elem2entry(struct task_struct, all_list_tag, pelem);
+
     return ptask;
 }
 
@@ -309,7 +367,7 @@ void task_init(void)
     printf("task_init start.\n");
     list_init(&task_ready_list);
     list_init(&task_all_list);
-    list_init(&task_died_list);
+    tid_pool_init();
     
     //将当前main函数创建为任务
     make_main_task();

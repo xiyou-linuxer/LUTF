@@ -122,4 +122,10 @@ void task_block(enum task_status status);
  * **/
 void task_unblock(struct task_struct* ptask);
 
+/**
+ * release_tid - 释放tid
+ * @tid: 要释放的tid
+ * **/
+void release_tid(tid_t tid);
+
 #endif
