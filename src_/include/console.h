@@ -22,6 +22,11 @@ void console_release();
 void console_put_str(char* str);
 
 /**
+ * console_put_int - 输出int型数字十进制
+ * **/
+void console_put_int(int n);
+
+/**
  * console_put_char - 输出字符
  * **/
 void console_put_char(char ch);

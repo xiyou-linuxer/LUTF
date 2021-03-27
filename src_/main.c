@@ -11,7 +11,8 @@ struct ioqueue buf;
 
 void test(void* args)
 {
-    char* str = args;
+    // char* str = args;
+    int* n = args;
     while(1) {
         sleep(1);
         // printf("A, a = %d\n", a++);
@@ -20,7 +21,8 @@ void test(void* args)
         // console_put_str("hello\n");
         // char byte = ioq_getchar(&buf);
         // console_put_char(byte);
-        console_put_str(str);
+        // console_put_str(str);
+        console_put_int(*n);
         // task_exit(current_task);
         // task_exit(current_task);
         // pause();
@@ -34,6 +36,7 @@ void test1(void* args)
         sleep(1);
         // printf("B, a = %d\n", a++);
         // printf("BBBBBBBBBBBB\n");
+        // printf("%s ", args);
         console_put_str(str);
         // task_exit(current_task);
         // pause();
@@ -51,8 +54,11 @@ int main()
     init();
     print_task_info(current_task);
     int a = 1;
-    task_start("test", 31, test, "argA ");
+    // task_start("test", 31, test, a);
     task_start("tast1", 31, test1, "argB ");
+    for(int i = 0; i < 1000000; i++) {
+        task_start("abc", 31, test1, "a ");
+    }
     struct task_struct* ptask = tid2task(1);
     print_task_info(ptask);
     ptask = tid2task(2);

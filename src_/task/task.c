@@ -28,8 +28,8 @@
 
 // static tid_t tid = 0;   //tid递增
 
-//tid位图，最大支持1024个tid
-uint8_t tid_bitmap_bits[1250000] = {0};
+//tid位图，最大支持n*8个tid
+uint8_t tid_bitmap_bits[125100] = {0};
 
 struct tid_pool
 {
@@ -68,7 +68,7 @@ static void tid_pool_init(void)
 {
     tid_pool.tid_start = 1;
     tid_pool.tid_bitmap.bits = tid_bitmap_bits;
-    tid_pool.tid_bitmap.btmp_bytes_len = 128;
+    tid_pool.tid_bitmap.btmp_bytes_len = 125100;
     bitmap_init(&tid_pool.tid_bitmap);
     lock_init(&tid_pool.tid_lock);
 }
@@ -219,7 +219,7 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
-    printf("func_arg = 0x%lx\n", func_arg);
+    // printf("func_arg = 0x%lx\n", func_arg);
     //init sigjmp_buf;
     
     //init stack space

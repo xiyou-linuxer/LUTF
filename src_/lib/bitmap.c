@@ -13,6 +13,7 @@
 void bitmap_init(struct bitmap* btmp)
 {
     memset(btmp->bits, 0, btmp->btmp_bytes_len);
+    printf("btmp_len = %d\n", btmp->btmp_bytes_len);
 }
 
 /**

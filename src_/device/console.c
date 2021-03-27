@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 
 static struct lock concole_lock;   //控制台锁
 
@@ -47,6 +48,19 @@ void console_put_str(char* str)
     console_acquire();
     //输出字符串
     write(STDOUT_FILENO, str, strlen(str));
+    console_release();
+}
+
+/**
+ * console_put_int - 输出int型数字十进制
+ * **/
+void console_put_int(int n)
+{
+    console_acquire();
+    // char str[100];
+    // itoa(n, str, 10);
+    // write(STDOUT_FILENO, str, strlen(str));
+    printf("%d", n);
     console_release();
 }
 
