@@ -57,7 +57,7 @@ int main()
     print_task_info(ptask);
     ptask = tid2task(2);
     print_task_info(ptask);
-    interrupt_enable();
+    // interrupt_enable();
     while(1) {
         sleep(1);
         console_put_str("maiN ");

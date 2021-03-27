@@ -56,7 +56,8 @@ $(BUILD_DIR)/ioqueue.o: device/ioqueue.c include/ioqueue.h \
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/init.o: task/init.c include/init.h \
-					include/task.h include/console.h include/ioqueue.h
+					include/task.h include/console.h include/ioqueue.h \
+					include/analog_interrupt.h
 	$(CC) $(CFLAGS) $< -o $@
 
 ###### 汇编文件 ######
