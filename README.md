@@ -40,7 +40,7 @@ TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 ### 安装教程
 ************
 1.  git clone https://github.com/Xiyou-LUG/src.git 或
-git clone https://gitee.com/openeuler2020/team-1382578369
+https://gitee.com/openeuler2020/team-1382578369.git
 2.  cd src/
 3.  make all
 
