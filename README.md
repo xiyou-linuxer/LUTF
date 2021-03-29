@@ -1,5 +1,8 @@
 # 4-Xiyou-LUG
 
+## 介绍
+TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
+
 ## libtask项目文档
 本项目的内容可以随意进行学习、使用，请勿用于商业目的
 ## 目录
@@ -16,9 +19,6 @@
     - 输出
     - 锁及锁的操作
 * 创建任务示例
-
-## 介绍
-TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 
 ### 引言
 ************
