@@ -364,7 +364,7 @@ void print_task_info(struct task_struct* ptask)
  * **/
 void task_init(void)
 {
-    printf("task_init start.\n");
+    // printf("task_init start.\n");
     list_init(&task_ready_list);
     list_init(&task_all_list);
     tid_pool_init();
@@ -372,7 +372,7 @@ void task_init(void)
     //将当前main函数创建为任务
     make_main_task();
 
-    printf("task_init done!\n");
+    // printf("task_init done!\n");
 }
 
 /**
