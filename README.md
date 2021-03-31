@@ -1,8 +1,5 @@
 # 4-Xiyou-LUG
 
-## 介绍
-TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
-
 ## libtask项目文档
 本项目的内容可以随意进行学习、使用，请勿用于商业目的
 ## 目录
@@ -19,6 +16,9 @@ TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
     - 输出
     - 锁及锁的操作
 * 创建任务示例
+
+## 介绍
+TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 
 ### 引言
 ************
@@ -79,6 +79,12 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
 #include <stdio.h>
 #include <unistd.h>
 
+void test(void* args)
+{
+    char* str = args;
+    console_put_str(str);
+}
+
 void test1(void* args)
 {
     char* str = args;
@@ -88,10 +94,14 @@ void test1(void* args)
     }
 }
 
+/**
+ * 先创建一个任务执行后并退出，退出后内存的释放由框架进行，暂不支持返回参数
+ * 然后创建100w个任务并执行
+ * **/
 int main()
 {
     init();
-    task_start("tast1", 31, test1, "argB ");
+    task_start("tast1", 31, test, "argA ");
     for(int i = 0; i < 1000000; i++) {
         task_start("abc", 31, test1, "a ");
     }
