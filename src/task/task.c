@@ -237,11 +237,11 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 
     //ss should be 0x2b
     ptask->context.__pad0 = 0x2b;
-    ptask->context.rsp = ptask->context.rbp =  ptask->task_stack;
+    ptask->context.rsp = ptask->context.rbp = (uint64_t)ptask->task_stack;
     ptask->context.cs = 0x33;
-    ptask->context.rip = task_entrance;
-    ptask->context.rdi = function;
-    ptask->context.rsi = func_arg;
+    ptask->context.rip = (uint64_t)task_entrance;
+    ptask->context.rdi = (uint64_t)function;
+    ptask->context.rsi = (uint64_t)func_arg;
 
     // ptask->function = function;
     // ptask->func_args = func_arg;
