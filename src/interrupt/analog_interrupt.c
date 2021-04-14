@@ -35,5 +35,5 @@ void interrupt_enable()
  * **/
 void interrupt_disable()
 {
-	signal(SIGALRM, NULL);
+	signal(SIGALRM, SIG_IGN);
 }
