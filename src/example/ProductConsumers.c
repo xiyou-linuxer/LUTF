@@ -1,11 +1,14 @@
-#include "task.h"
+#include "../include/task.h"
 #include "console.h"
 #include "init.h"
+#include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
 
 void test1(void* args)
 {
+    co_enable_hook_sys();
+    int fd = socket(PF_INET, SOCK_STREAM, 0);
     char* str = args;
     while(1) {
         sleep(1);

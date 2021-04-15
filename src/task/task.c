@@ -176,6 +176,7 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
     ptask->stack_magic = 0x19991120;
+    ptask->is_hook = false;
 }
 
 /**
@@ -493,4 +494,8 @@ static void block_task_schedule()
     struct task_struct* temp = current_task;
     current_task = next;
     context_swap(&temp->context, &next->context);
+}
+
+bool current_is_hook(){
+   return current_task && current_task->is_hook; 
 }

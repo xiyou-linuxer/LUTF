@@ -15,11 +15,14 @@ CFLAGS = -c -g $(LIB)
 OBJS = $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
-		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o
+		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o $(BUILD_DIR)/hook.o
 
 ###### 编译 ######
 # $(BUILD_DIR)/main.o: main.c include/task.h
 	# $(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/hook.o: include/task.h
+	$(CC) $(CFLAGS) -ldl $< -o $@
 
 $(BUILD_DIR)/list.o: lib/list.c include/list.h
 	$(CC) $(CFLAGS) $< -o $@
@@ -28,8 +31,8 @@ $(BUILD_DIR)/assert.o: lib/assert.c include/assert.h
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR)/task.o: task/task.c include/task.h \
-					include/list.h include/assert.h include/bitmap.h include/debug.h include/sync.h
-	$(CC) $(CFLAGS) $< -o $@
+					include/list.h include/assert.h include/bitmap.h include/debug.h include/sync.h hook.c
+	$(CC) $(CFLAGS) hook.o $< -o $@
 
 $(BUILD_DIR)/analog_interrupt.o: interrupt/analog_interrupt.c include/analog_interrupt.h \
 					include/set_ticker.h include/stdint.h include/assert.h
