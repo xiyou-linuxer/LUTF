@@ -5,24 +5,25 @@ LD = gcc
 AR = ar
 LIB = -I include/
 ASFLAGS = -f elf64
-CFLAGS = -c -g $(LIB)
+CFLAGS = -Wl,--no-as-needed -ldl -c -g $(LIB)
 
 #OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
 		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o
 
-OBJS = $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
+OBJS =  $(BUILD_DIR)/hook.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
-		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o $(BUILD_DIR)/hook.o
+		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o 
 
 ###### 编译 ######
 # $(BUILD_DIR)/main.o: main.c include/task.h
 	# $(CC) $(CFLAGS) $< -o $@
 
-$(BUILD_DIR)/hook.o: include/task.h
-	$(CC) $(CFLAGS) -ldl $< -o $@
+$(BUILD_DIR)/hook.o: hook.c include/task.h
+	# D_GNU_SOURCE 是必要的，因为RTLD_NEXT不是posix标准定义的
+	$(CC) $< $(CFLAGS) -D_GNU_SOURCE -export-dynamic -o $@
 
 $(BUILD_DIR)/list.o: lib/list.c include/list.h
 	$(CC) $(CFLAGS) $< -o $@
@@ -32,7 +33,7 @@ $(BUILD_DIR)/assert.o: lib/assert.c include/assert.h
 
 $(BUILD_DIR)/task.o: task/task.c include/task.h \
 					include/list.h include/assert.h include/bitmap.h include/debug.h include/sync.h hook.c
-	$(CC) $(CFLAGS) hook.o $< -o $@
+	$(CC) $(CFLAGS) $(BUILD_DIR)/hook.o $< -o $@
 
 $(BUILD_DIR)/analog_interrupt.o: interrupt/analog_interrupt.c include/analog_interrupt.h \
 					include/set_ticker.h include/stdint.h include/assert.h

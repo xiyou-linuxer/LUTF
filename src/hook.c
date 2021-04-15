@@ -7,10 +7,21 @@
 #include <string.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <cstdarg>  // 可变函数参数相关
+#include <stdarg.h>  // 可变函数参数相关
 #include <errno.h>
 #include <stdio.h>
+
+    struct fd_attributes{
+        int domain;                 // AF_LOCAL->域套接字 , AF_INET->IP
+        int fd_flag;                 // 记录套接字状态
+        int read_timeout;           // 读超时时间
+        int wirte_timeout;          // 写超时时间
+    };
+
+    // 确保以下两项相同
+    static const int attributes_length = 8196;
+    // 记得后面要在主协程结束的时候进行清除
+    static struct fd_attributes* fd_2_attributes[8196];
 
     // ------------------------------------ 
     // hook前的函数声明
@@ -47,7 +58,7 @@
     // 函数dlsym的参数RTLD_NEXT可以在对函数实现所在动态库名称未知的情况下完成对库函数的替代
     // 格式为{Hook_##name##_t}
 
-    static read_t Hook_read_t = (read_t)dlsym(RTLD_NEXT, "read");
+/*     static read_t Hook_read_t = (read_t)dlsym(RTLD_NEXT, "read");
     static write_t Hook_write_t = (write_t)dlsym(RTLD_NEXT, "write");
     static poll_t Hook_poll_t = (poll_t)dlsym(RTLD_NEXT, "poll");
 
@@ -64,32 +75,20 @@
     static sendto_t Hook_sendto_t = (sendto_t)dlsym(RTLD_NEXT, "sendto");
     static recvfrom_t Hook_recvfrom_t = (recvfrom_t)dlsym(RTLD_NEXT, "recvfrom");
     static send_t Hook_send_t = (send_t)dlsym(RTLD_NEXT, "send_t");
-    static recv_t Hook_recv_t = (recv_t)dlsym(RTLD_NEXT, "recv_t");
+    static recv_t Hook_recv_t = (recv_t)dlsym(RTLD_NEXT, "recv_t"); */
 
-    #define HOOK_SYS_FUNC(name) if( !Hook_##name##_t ) { Hook_##name##_t = (name##_t)dlsym(RTLD_NEXT,#name); }
+    #define HOOK_SYS_FUNC(name) if( !Hook_##name##_t ) { name##t Hook_##name##_t = (name##_t)dlsym(RTLD_NEXT,#name); }
 
-    struct fd_attributes{
-        struct sockaddr_in addr;    // 套接字目标地址
-        int domain;                 // AF_LOCAL->域套接字 , AF_INET->IP
-        int fd_flag;                 // 记录套接字状态
-        int read_timeout;           // 读超时时间
-        int wirte_timeout;          // 写超时时间
-    };
-
-    static const int attributes_length = 8196;
-    // 记得后面要在主协程结束的时候进行清除
-    static fd_attributes* fd_2_attributes[attributes_length];
-
-    static inline fd_attributes* create_fd_attributes(int fd){
-        if(fd < 0 && fd >= attributes_length) return nullptr;
+    static inline struct fd_attributes* create_fd_attributes(int fd){
+        if(fd < 0 && fd >= attributes_length) return NULL;
         
-        fd_attributes* Temp = nullptr;
+        struct fd_attributes* Temp = NULL;
 
-        if(fd_2_attributes[fd] != nullptr){
+        if(fd_2_attributes[fd] != NULL){
             Temp = fd_2_attributes[fd];
         } else {
-            Temp = (fd_attributes*)malloc(sizeof(fd_attributes));
-            memset(Temp, 0, sizeof(fd_attributes));
+            Temp = (struct fd_attributes*)malloc(sizeof(struct fd_attributes));
+            memset(Temp, 0, sizeof(struct fd_attributes));
             Temp->read_timeout  = 1000; // 设定默认超时时间为1s
             Temp->wirte_timeout = 1000;
             fd_2_attributes[fd] = Temp;
@@ -98,32 +97,9 @@
         return Temp;
     }
 
-    int socket(int domain, int type, int protocol){
-        HOOK_SYS_FUNC(socket);
-        printf("进入hook的socket\n");
-        // TODO：这里需要就协程的运行任务不同而做出不同的修改
-        if(__builtin_expect(current_is_hook(), 1)){        // 可能有些协程不需要hook
-            return Hook_socket_t(domain, type, protocol);
-        }
-        int fd = Hook_socket_t(domain, type, protocol);
-        if(fd < 0){
-            printf("ERROR: error in create a socket in socket().\n");
-            return fd;
-        }
-        fd_attributes* attributes = create_fd_attributes(fd);
-        attributes->domain = domain;
-
-        // TODO 套接字状态和地址还未设定
-
-        // F_SETFL会把套接字设置成非阻塞的
-        fcntl(fd, F_SETFL, Hook_fcntl_t(fd, F_GETFL, 0));
-
-        return fd;
-    }
-
     int fcntl(int fd, int cmd, ...){
         printf("进入hook的fcntl\n");
-        HOOK_SYS_FUNC(fcntl);
+        fcntl_t Hook_fcntl_t = (fcntl_t)dlsym(RTLD_NEXT, "fcntl");
 
         if(fd < 0){ // 当函数返回非零值的时候都是非正常返回
             return __LINE__;
@@ -131,7 +107,7 @@
 
         va_list arg_list;
         va_start( arg_list,cmd );
-        fd_attributes* attributes = create_fd_attributes(fd);
+        struct fd_attributes* attributes = create_fd_attributes(fd);
 
         int ret = 0;
         // https://man7.org/linux/man-pages/man2/fcntl.2.html
@@ -198,6 +174,31 @@
         }
         va_end( arg_list );
         return ret;
+    }
+
+    int socket(int domain, int type, int protocol){
+        //HOOK_SYS_FUNC(socket);
+        socket_t Hook_socket_t = (socket_t)dlsym(RTLD_NEXT, "socket");
+        printf("进入hook的socket\n");
+        // TODO：这里需要就协程的运行任务不同而做出不同的修改
+        if(__builtin_expect(current_is_hook(), 1)){        // 可能有些协程不需要hook
+            return Hook_socket_t(domain, type, protocol);
+        }
+        int fd = Hook_socket_t(domain, type, protocol);
+        if(fd < 0){
+            printf("ERROR: error in create a socket in socket().\n");
+            return fd;
+        }
+        struct fd_attributes* attributes = create_fd_attributes(fd);
+        attributes->domain = domain;
+
+        // TODO 套接字状态和地址还未设定
+
+        // F_SETFL会把套接字设置成非阻塞的
+        fcntl_t Hook_fcntl_t = (fcntl_t)dlsym(RTLD_NEXT, "fcntl");
+        fcntl(fd, F_SETFL, Hook_fcntl_t(fd, F_GETFL, 0));
+
+        return fd;
     }
 
     void co_enable_hook_sys(){
