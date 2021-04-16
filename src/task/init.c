@@ -8,6 +8,6 @@ void init()
 {
     console_init();
     task_init();
-    interrupt_enable();
+    interrupt_init();
     return;
 }

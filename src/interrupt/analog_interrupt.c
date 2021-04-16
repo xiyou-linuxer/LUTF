@@ -10,12 +10,26 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+/**
+ * signal_headler - 模拟中断核心
+ * **/
 static void signal_headler(int signal_num)
 {
 	unsigned long a = 0;
-	// printf("ZZZZZZZZZZZZZZZZ\n");
 	interrupt_timer_handler(&a);
-	// printf("ticks = %d\n", ticks);
+}
+
+/**
+ * interrupt_init - 中断启动
+ * **/
+void interrupt_init()
+{
+  /* 模拟中断 */
+	signal(SIGALRM, signal_headler);
+  /* 10毫秒将会定时器SIGALRM就会唤醒一次中断 */
+	if(set_ticker(10) == -1) {
+		panic("set_ticker failed.");
+	}
 }
 
 /**
@@ -23,11 +37,11 @@ static void signal_headler(int signal_num)
  * **/
 void interrupt_enable()
 {
-    /* 模拟中断 */
-	signal(SIGALRM, signal_headler);
-	if(set_ticker(10) == -1) {
-		perror("set_ticker");
-	}
+  sigset_t sigset;
+
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGALRM);
+  sigprocmask(SIG_BLOCK, &sigset, NULL);
 }
 
 /**
@@ -35,5 +49,9 @@ void interrupt_enable()
  * **/
 void interrupt_disable()
 {
-	signal(SIGALRM, SIG_IGN);
+  sigset_t sigset;
+
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGALRM);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 }
