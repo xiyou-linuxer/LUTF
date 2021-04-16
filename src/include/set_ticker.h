@@ -6,6 +6,7 @@
 
 int set_ticker(int n_msecs);
 
+/* 设置一个定时时长 */
 int set_ticker(int n_msecs)
 {
     struct itimerval new_timeset;

@@ -38,11 +38,6 @@ struct task_stack
     uint64_t r15;
     uint64_t rsp;
     uint64_t rip;
-
-    //以下仅供第一次被调度上cpu时使用
-    void (*unused_retaddr);//参数unused_ret只为占位置充数为返回地址
-    // task_func* function;   //由kernel_thread所调用的函数名
-    void* func_arg;   //由kernel_thread所调用的函数所需的参数
 };
 
 struct task_struct
@@ -56,7 +51,6 @@ struct task_struct
     char name[32];   //任务名
     uint8_t priority;   //任务优先级，通过优先级设置时间片
     uint8_t ticks;   //每次处理器上执行的时间嘀嗒数，任务的时间片
-    
     uint32_t elapsed_ticks;   //任务从开始到结束的总滴答数
 
     struct list_elem general_tag;

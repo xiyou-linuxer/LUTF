@@ -12,11 +12,9 @@ uint64_t ticks;
 void interrupt_timer_handler(unsigned long* a)
 {
     assert(current_task->stack_magic == 0x19991120);
-
     current_task->elapsed_ticks++;   //记录此任务占用cpu的时间
     ticks++;   //第一次处理时间中断后至今的滴答数，总滴答数
-    // printf("!!!!!!!!!!!!\n");
-
+    /* 时间片用尽执行 schedule() */
     if(current_task->ticks == 0) {
         schedule(a);
     } else {

@@ -9,10 +9,10 @@ void panic_spin(char* filename, \
                 const char* condition)
 {
     interrupt_disable();   //因为有时候会单独调用panic_spin,所以在此处关中断
-    printf("\n\n\n!!!!!! error !!!!!!\n");
-    printf("filename:%s\n", filename);
-    printf("line:0x%x\n", line);
-    printf("function:%s\n", (char*)func);
-    printf("condition:%s\n", (char*)condition);
+    fprintf(stderr,"\n\n\n!!!!!! error !!!!!!\n");
+    fprintf(stderr,"filename:%s\n", filename);
+    fprintf(stderr,"line:0x%x\n", line);
+    fprintf(stderr,"function:%s\n", (char*)func);
+    fprintf(stderr,"condition:%s\n", (char*)condition);
     while(1);
 }

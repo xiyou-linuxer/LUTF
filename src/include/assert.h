@@ -12,7 +12,7 @@ void user_spin(char* filename, int line, const char* func, const char* condition
    #define assert(CONDITION)  \
       if (!(CONDITION)) {     \
 	 panic(#CONDITION);   \
-      }    
+      }
 
 #endif/*NDEBUG*/
 
