@@ -40,8 +40,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Intel x86
+# Another
 *.img
 *.bin
 main
 build/
+.vscode/

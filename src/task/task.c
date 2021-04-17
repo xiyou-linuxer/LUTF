@@ -91,9 +91,9 @@ void release_tid(tid_t tid)
  * **/
 void task_exit(struct task_struct* task)
 {
-    //关闭中断
+    // 关闭中断
     interrupt_disable();
-
+    // 此处可以做优化
     task->status = TASK_DIED;
 
     //在就绪队列中删除

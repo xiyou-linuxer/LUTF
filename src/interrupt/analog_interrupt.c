@@ -28,6 +28,7 @@ void interrupt_init()
 	signal(SIGALRM, signal_headler);
   /* 10毫秒将会定时器SIGALRM就会唤醒一次中断 */
 	if(set_ticker(10) == -1) {
+    clock_granularity = 10;
 		panic("set_ticker failed.");
 	}
 }
