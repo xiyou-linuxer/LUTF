@@ -65,8 +65,11 @@ struct task_struct
     //第一次调度的时候使用
     task_func* function;
     void* func_args;   // function(func_args);
-    bool first;
     uint32_t stack_magic;
+    bool first;
+
+    // 用于记录此协程是否用户希望被hook
+    bool is_hook;
 };
 
 /** 
@@ -127,5 +130,15 @@ void task_unblock(struct task_struct* ptask);
  * @tid: 要释放的tid
  * **/
 void release_tid(tid_t tid);
+
+/**
+ * 协程调用此函数，用于把hook的库函数导入进程符号表
+ * **/
+void co_enable_hook_sys();
+
+/**
+ * 检测当前正在运行的协程用户是否希望被hook
+ * **/
+bool current_is_hook();
 
 #endif
