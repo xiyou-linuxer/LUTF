@@ -170,7 +170,9 @@ void init_task(struct task_struct* ptask, char* name, int prio)
     ptask->ticks = prio;
     ptask->elapsed_ticks = 0;
     ptask->stack_magic = 0x19991120;
+    ptask->sleep_millisecond = 0;
     ptask->is_hook = false;
+    ptask->is_collaborative_schedule = false;
 }
 
 /**
@@ -242,7 +244,7 @@ static void make_main_task(void)
     main_task = (struct task_struct*)malloc(sizeof(struct task_struct));
 
     //初始化main任务的task_struct
-    init_task(main_task, "main", 31);
+    init_task(main_task, "main", 3);
 
     //main函数是当前任务，当前还不再task_ready_list中，只加入task_all_list
     assert(!elem_find(&task_all_list, &main_task->all_list_tag));
@@ -336,8 +338,40 @@ void schedule(unsigned long* a)
 
     if(list_empty(&task_ready_list)) {
         printf("task_ready_list is empty!\n");
-        while(1);
+        while(1){
+            printf("nihao\n");
+        };   // TODO 当main函数执行sleep的时候可能会卡死，因为hook后的sleep不会把current_task插入ready_list
     }
+
+    /* 获取下一个任务 */
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+    //从信号栈esp+72获得sigcontext的内容
+    p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
+    struct sigcontext* context = (struct sigcontext*)p;
+    /* 将当前任务的上下文保存到 current_task的上下文中 */
+    memcpy(&current_task->context, context, sizeof(struct sigcontext));
+    /* 将下个任务的上下文取出使用 */
+    current_task = next;
+    memcpy(context, &current_task->context, sizeof(struct sigcontext));
+}
+
+/**
+ * collaborative_schedule - 协作式时的任务调度，与schedule的区别就是不会把current_task插入就绪队列
+ * 而是等在超时时间结束以后再插入就绪队列。
+ * **/
+void collaborative_schedule(unsigned long* a)
+{
+    unsigned char* p;
+
+    if(list_empty(&task_ready_list)) {
+        printf("task_ready_list is empty!\n");
+        while(1){
+            printf("nihao\n");
+        }
+    }
+
     /* 获取下一个任务 */
     task_tag = list_pop(&task_ready_list);
     struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
@@ -394,6 +428,9 @@ static void block_task_schedule()
     context_swap(&temp->context, &next->context);
 }
 
+/**
+ * 判断当前任务是否希望被hook
+ * **/
 bool current_is_hook(){
    return current_task && current_task->is_hook; 
 }

@@ -14,14 +14,14 @@
     struct fd_attributes{
         int domain;                 // AF_LOCAL->域套接字 , AF_INET->IP
         int fd_flag;                 // 记录套接字状态
-        int read_timeout;           // 读超时时间
+        int read_timeout;           // 读超时时间;sleep空转超时时间；
         int wirte_timeout;          // 写超时时间
     };
 
-    // 确保以下两项相同
-    static const int attributes_length = 8196;
+    // 确保以下两项相同；此处应该与tid位图长度一致；
+    static const int attributes_length = 125100*8;
     // 记得后面要在主协程结束的时候进行清除
-    static struct fd_attributes* fd_2_attributes[8196];
+    static struct fd_attributes* fd_2_attributes[125100*8];
 
     // ------------------------------------ 
     // hook前的函数声明
@@ -52,6 +52,20 @@
 
     typedef ssize_t (*send_t)(int fd, const void *buffer, size_t length, int flags);
     typedef ssize_t (*recv_t)(int fd, void *buffer, size_t length, int flags);
+
+    typedef unsigned int (*sleep_t)(unsigned int seconds);
+
+    // Since glibc 2.12:
+    // https://man7.org/linux/man-pages/man3/usleep.3.html
+    #ifdef _XOPEN_SOURCE >= 500 && ! _POSIX_C_SOURCE >= 200809L || /* Glibc since 2.19: */ _DEFAULT_SOURCE || /* Glibc <= 2.19: */ _BSD_SOURCE
+    typedef int (*usleep_t)(useconds_t usec);
+    #endif 
+    // Before glibc 2.12: 不知道怎么用宏查看glibc版本
+    //           _BSD_SOURCE || _XOPEN_SOURCE >= 500
+
+    #ifdef _POSIX_C_SOURCE >= 199309L   // https://man7.org/linux/man-pages/man2/nanosleep.2.html
+    typedef int (*nanosleep_t)(const struct timespec *req, struct timespec *rem);
+    #endif
 
     // ------------------------------------
     // 对函数进行hook,并存储hook前的函数,因为在封装以后还是要调用
@@ -85,7 +99,7 @@
         struct fd_attributes* Temp = NULL;
 
         if(fd_2_attributes[fd] != NULL){
-            Temp = fd_2_attributes[fd];
+            Temp = fd_2_attributes[fd]; // 本身存在的时候直接返回
         } else {
             Temp = (struct fd_attributes*)malloc(sizeof(struct fd_attributes));
             memset(Temp, 0, sizeof(struct fd_attributes));
@@ -98,7 +112,7 @@
     }
 
     int fcntl(int fd, int cmd, ...){
-        printf("进入hook的fcntl\n");
+        //printf("进入hook的fcntl\n");
         fcntl_t Hook_fcntl_t = (fcntl_t)dlsym(RTLD_NEXT, "fcntl");
 
         if(fd < 0){ // 当函数返回非零值的时候都是非正常返回
@@ -177,11 +191,10 @@
     }
 
     int socket(int domain, int type, int protocol){
-        //HOOK_SYS_FUNC(socket);
         socket_t Hook_socket_t = (socket_t)dlsym(RTLD_NEXT, "socket");
-        printf("进入hook的socket\n");
+        //printf("进入hook的socket\n");
         // TODO：这里需要就协程的运行任务不同而做出不同的修改
-        if(__builtin_expect(current_is_hook(), 1)){        // 可能有些协程不需要hook
+        if(__builtin_expect(!current_is_hook(), 1)){        // 可能有些协程不需要hook
             return Hook_socket_t(domain, type, protocol);
         }
         int fd = Hook_socket_t(domain, type, protocol);
@@ -201,7 +214,23 @@
         return fd;
     }
 
+    unsigned int sleep(unsigned int seconds){
+        //printf("进入hook的sleep second : %d, name : %s\n", seconds, current_task->name);
+        sleep_t Hook_sleep_t = (sleep_t)dlsym(RTLD_NEXT, "sleep");
+        if(!current_is_hook()){
+            return Hook_sleep_t(seconds);
+        }
+        current_task->is_collaborative_schedule = true;     // 标记这个任务虽然时间片没跑完，但是仍然需要被调度
+        current_task->sleep_millisecond = seconds * 1000;
+        
+        while(current_task->is_collaborative_schedule){    // 会在空转一个时间片以后进入信号处理函数，
+        }
+
+        // 执行流会在至少seconds秒后回到这里继续执行
+        // 因为是用户态的实现，所以return返回值不会出现错误的情况，一定会在seconds秒后返回
+        return 0;
+    }
+
     void co_enable_hook_sys(){
-        printf("nihao\n");
         current_task->is_hook = true;
     }

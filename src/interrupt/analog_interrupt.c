@@ -42,7 +42,7 @@ void interrupt_enable()
 
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGALRM);
-  sigprocmask(SIG_BLOCK, &sigset, NULL);
+  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 }
 
 /**
@@ -54,5 +54,5 @@ void interrupt_disable()
 
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGALRM);
-  sigprocmask(SIG_UNBLOCK, &sigset, NULL);
+  sigprocmask(SIG_BLOCK, &sigset, NULL);
 }
