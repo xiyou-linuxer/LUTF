@@ -37,6 +37,7 @@ static void died_task_schedule();
 static void block_task_schedule();
 
 void context_set(struct sigcontext* context);
+void get_reg(struct sigcontext* context);
 void context_swap(struct sigcontext* c_context, struct sigcontext* n_context);
 
 /**
@@ -184,11 +185,10 @@ void init_task(struct task_struct* ptask, char* name, int prio)
 static void task_create(struct task_struct* ptask, task_func function, void* func_arg)
 {
     memset(&ptask->context, 0, sizeof(ptask->context));
-    ptask->context.__pad0 = 0x2b;
     /* 设置任务的栈帧 */
     ptask->context.rsp = ptask->context.rbp = (uint64_t)ptask->task_stack;
+    get_reg(&ptask->context);
     /* 设置任务的 cs:ip */
-    ptask->context.cs = 0x33;
     ptask->context.rip = (uint64_t)task_entrance;
     ptask->context.rdi = (uint64_t)function;
     ptask->context.rsi = (uint64_t)func_arg;
@@ -366,9 +366,7 @@ void collaborative_schedule(unsigned long* a)
     unsigned char* p;
 
     if(list_empty(&task_ready_list)) {
-        printf("task_ready_list is empty!\n");
         while(1){
-            printf("nihao\n");
         }
     }
 

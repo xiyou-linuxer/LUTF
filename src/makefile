@@ -15,7 +15,7 @@ CFLAGS = -Wl,--no-as-needed -ldl -c -g $(LIB)
 OBJS =  $(BUILD_DIR)/hook.o $(BUILD_DIR)/assert.o $(BUILD_DIR)/task.o $(BUILD_DIR)/list.o \
 		$(BUILD_DIR)/analog_interrupt.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/died_context_swap.o \
 		$(BUILD_DIR)/bitmap.o $(BUILD_DIR)/context_swap.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/sync.o \
-		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o 
+		$(BUILD_DIR)/console.o $(BUILD_DIR)/ioqueue.o $(BUILD_DIR)/init.o $(BUILD_DIR)/get_reg.o
 
 ###### 编译 ######
 # $(BUILD_DIR)/main.o: main.c include/task.h
@@ -75,6 +75,9 @@ $(BUILD_DIR)/died_context_swap.o: task/died_context_swap.asm
 	$(AS) $(ASFLAGS) $< -o $@
 
 $(BUILD_DIR)/context_swap.o: task/context_swap.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/get_reg.o: task/get_reg.asm
 	$(AS) $(ASFLAGS) $< -o $@
 
 ###### 生成库文件 ######

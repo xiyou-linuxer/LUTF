@@ -79,9 +79,8 @@ int main()
 目前还处于编码阶段，所以这里先不写正式描述，后面会添加样例，以下是执行步骤
 cd src
 rm libtask.a
-make clean
 make all
-gcc example/ProductConsumers.c -o main -std=gnu99 -ldl -I include/ libtask.a 
+gcc example/testsleep.c -o main -std=gnu99 -Wl,--no-as-needed -ldl -I include/ libtask.a  
 ```
 
 #### 参与贡献
