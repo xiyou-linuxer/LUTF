@@ -1,5 +1,23 @@
 # 4-Xiyou-LUG
 
+## libtask项目文档
+本项目的内容可以随意进行学习、使用，请勿用于商业目的
+## 目录
+* 引言
+    - 介绍
+    - 项目背景
+    - 开发环境及使用工具
+* 软件架构
+    - 模拟中断模块
+    - 多任务调度模块
+* 安装教程
+* 使用说明
+    - 初始化任务框架
+    - 创建任务
+    - 输出
+    - 锁及锁的操作
+* Hook 模块
+* 创建任务示例
 #### 介绍
 TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 
@@ -10,6 +28,7 @@ TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 #### 软件架构
 
 ##### 模拟中断模块
+
 底层使用信号模拟中断。任务的抢占点信号使用时钟信号，时钟周期为10ms。信号处理函数的栈中保存有用户态的上下文sigcontext，并且该栈存储在用户态，我们就可以通过保存和修改该上下文中的内容来实现上下文切换。
 
 ##### 多任务调度模块
@@ -17,28 +36,31 @@ TOPIC_ID:4, TEAM_ID:1382578369, TEAM_NAME:Xiyou-LUG.
 
 #### 安装教程
 
-1.  git clone https://github.com/Xiyou-LUG/src.git
-2.  cd src/
-3.  make all
-
+```bash
+git clone https://github.com/Xiyou-LUG/src.git
+cd src/
+make all
+```
 >make all后生成libtask.a库文件，编译程序时在后加上该和-I ./include/库即可。
 
 #### 使用说明
 
-初始化任务框架 
+* 初始化任务框架
 
-init();
+  `init();`
 
-创建任务
+* 创建任务
 
-struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg);
+  `struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg);`
 
-输出 - 未hook现有的输出函数
+* 输出
 
-详见console.h
+   详见 `console.h`
 
-创建任务示例 - 创建100w个任务，并执行。
-由于在任务创建函数中将终端屏蔽，即忽略时钟信号，以保证任务就绪链表同步，同时信号处理函数的周期为10ms，所以在创建100w个任务时会消耗较长的时间，稍微等待即可。
+#### 创建任务示例
+
+ - 创建 100w 个任务，并执行。
+  由于在任务创建函数中将终端屏蔽，即忽略时钟信号，以保证任务就绪链表同步，同时信号处理函数的周期为 10ms，所以在创建 100w 个任务时会消耗较长的时间，稍微等待即可。
 ```c
 #include "task.h"
 #include "console.h"
@@ -69,18 +91,31 @@ int main()
     return 0;
 }
 ```
+
+* 编译：
 ```bash
-工作目录：src/
-编译链接：gcc main.c -o main -std=gnu99 -I include/ libtask.a
-运行：./main
+cd src
+make clean && make all
+gcc main.c -o main -ldl -I include/ libtask.a
 ```
 
+* 运行
+```bash
+./main
+```
+
+* 一键编译运行
+```bash
+./run.sh
+```
+
+#### Hook 模块
 ```
 目前还处于编码阶段，所以这里先不写正式描述，后面会添加样例，以下是执行步骤
 cd src
 rm libtask.a
 make all
-gcc example/testsleep.c -o main -std=gnu99 -Wl,--no-as-needed -ldl -I include/ libtask.a  
+gcc example/testsleep.c -o main -std=gnu99 -Wl,--no-as-needed -ldl -I include/ libtask.a
 ```
 
 #### 参与贡献

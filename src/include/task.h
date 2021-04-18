@@ -151,5 +151,5 @@ bool current_is_hook();
 /**
  * 定时清除死亡函数
  * **/
-void clean_dead_task(void);
+void clean_dead_task(void*);
 #endif

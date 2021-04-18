@@ -19,6 +19,21 @@ void test1(void* args)
     }
 }
 
+/* cpu密集 */
+void test2(void* args)
+{
+  while(1);
+}
+
+/* io密集 */
+void test3(void* args)
+{
+  while(1){
+        sleep(1);
+        console_put_str("rrr\n");
+  }
+}
+
 int main()
 {
     init();
