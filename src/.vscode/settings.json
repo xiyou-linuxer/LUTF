@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "ucontext.h": "c",
-        "assert.h": "c"
-    }
-}
