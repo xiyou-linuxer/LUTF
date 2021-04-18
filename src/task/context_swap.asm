@@ -21,9 +21,9 @@ context_swap:
     mov [rdi + 8*13], rax
     mov [rdi + 8*14], rcx
     ; mov [rdi + 8*15], rsp
-    mov rcx, [rsp]
+    mov rcx, [rsp]; [rsp] == rip
     mov [rdi + 8*16], rcx   ;[rdi + 8*16]存储rip的值，返回地址为下一次切换到该任务时的运行指令的地址
-    lea rcx, [rsp + 8]
+    lea rcx, [rsp + 8];???
     mov [rdi + 8*15], rcx   ;下次切换到该任务时，栈的栈顶
 
     ;切换到next的上下文
@@ -43,7 +43,6 @@ context_swap:
     mov rbx, [rsi + 8*11]
     mov rdx, [rsi + 8*12]
     mov rax, [rsi + 8*13]
-    mov rcx, [rsi + 8*14]
     mov rsp, [rsi + 8*15]   ;切换栈
 
     mov rcx, [rsi + 8*16]   ;rip的内容
