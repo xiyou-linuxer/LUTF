@@ -230,6 +230,43 @@
         // 因为是用户态的实现，所以return返回值不会出现错误的情况，一定会在seconds秒后返回
         return 0;
     }
+    #ifdef _POSIX_C_SOURCE >= 199309L
+    int nanosleep(const struct timespec *req, struct timespec *rem){    // 这里不需要管rem，因为纯用户态的实现sleep
+        nanosleep_t Hook_nanosleep_t = (nanosleep_t)dlsym(RTLD_NEXT, "nanosleep");
+        if(!current_is_hook()){
+            return Hook_nanosleep_t(req, rem);
+        }
+        current_task->is_collaborative_schedule = true;
+        current_task->sleep_millisecond = req->tv_sec * 1000;   
+        current_task->sleep_millisecond += req->tv_nsec/1000000;// 10^(-9)
+        
+        while(current_task->is_collaborative_schedule){
+        }
+
+        return 0;
+    }
+    #endif
+
+    #ifdef _XOPEN_SOURCE >= 500 && ! _POSIX_C_SOURCE >= 200809L || _DEFAULT_SOURCE || _BSD_SOURCE
+    int usleep(useconds_t usec){
+        usleep_t Hook_usleep_t = (usleep_t)dlsym(RTLD_NEXT, "usleep");
+        if(!current_is_hook()){
+            return Hook_usleep_t(usec);
+        }
+        current_task->is_collaborative_schedule = true;     // 标记这个任务虽然时间片没跑完，但是仍然需要被调度
+        current_task->sleep_millisecond = usec / 1000;      // 单位默认为1000000微秒
+        
+        while(current_task->is_collaborative_schedule){     // 会在空转一个时间片以后进入信号处理函数，
+        }
+
+        // 执行流会在至少seconds秒后回到这里继续执行
+        // 因为是用户态的实现，所以return返回值不会出现错误的情况，一定会在seconds秒后返回
+        return 0;
+    }
+    #endif 
+    // Before glibc 2.12: 不知道怎么用宏查看glibc版本
+    //           _BSD_SOURCE || _XOPEN_SOURCE >= 500
+
 
     void co_enable_hook_sys(){
         current_task->is_hook = true;
