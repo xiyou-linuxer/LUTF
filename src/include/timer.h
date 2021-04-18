@@ -46,7 +46,7 @@ typedef struct TIMER_MANAGER
     struct LIST_TIMER arrListTimer4[TVN_SIZE];  // 4 级时间轮。存储未来的 256*64*64 ~ 256*64*64*64-1 毫秒的计时器。tick 的粒度为 256*64*64 毫秒
     struct LIST_TIMER arrListTimer5[TVN_SIZE];  // 5 级时间轮。存储未来的 256*64*64*64 ~ 256*64*64*64*64-1 毫秒的计时器。tick 的粒度为 256*64*64 毫秒
 } TIMERMANAGER, *LPTIMERMANAGER;
-
+extern LPTIMERMANAGER timer_manager;
 /**
  * interrupt_timer_handler - 时钟中断处理函数
  * **/
