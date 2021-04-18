@@ -433,7 +433,7 @@ bool current_is_hook(){
    return current_task && current_task->is_hook; 
 }
 // 清除死亡任务函数
-void clean_dead_task(void)
+void clean_dead_task(void*arg)
 {
     // 如果任务池为空
     if(list_empty(&task_pool_list)) { 
