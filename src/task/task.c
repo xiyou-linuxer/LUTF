@@ -346,9 +346,7 @@ void collaborative_schedule(unsigned long* a)
     unsigned char* p;
 
     if(list_empty(&task_ready_list)) {
-        printf("task_ready_list is empty!\n");
         while(1){
-            printf("nihao\n");
         }
     }
 

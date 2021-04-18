@@ -230,6 +230,20 @@
         // 因为是用户态的实现，所以return返回值不会出现错误的情况，一定会在seconds秒后返回
         return 0;
     }
+    #ifdef _POSIX_C_SOURCE >= 199309L
+    int nanosleep(const struct timespec *req, struct timespec *rem){
+
+    }
+    #endif
+
+    #ifdef _XOPEN_SOURCE >= 500 && ! _POSIX_C_SOURCE >= 200809L || _DEFAULT_SOURCE || _BSD_SOURCE
+    int usleep_t(useconds_t usec){
+        
+    }
+    #endif 
+    // Before glibc 2.12: 不知道怎么用宏查看glibc版本
+    //           _BSD_SOURCE || _XOPEN_SOURCE >= 500
+
 
     void co_enable_hook_sys(){
         current_task->is_hook = true;
