@@ -29,8 +29,9 @@ struct tid_pool
 struct task_struct* main_task;   //主任务tcb
 struct task_struct* current_task;   //记录当前任务
 struct list task_ready_list; /* 就绪任务列表 */
-struct list task_all_list;
-
+struct list task_all_list; // 所有任务列表
+struct list task_pool_list; // task 池,减少内存分配
+int task_all_nums;          // task_ready_list 中的 task 数量
 static struct list_elem* task_tag;   //保存队列中的任务节点
 static void died_task_schedule();
 static void block_task_schedule();
@@ -103,11 +104,15 @@ void task_exit(struct task_struct* task)
 
     //在全部任务队列中删除
     list_remove(&task->all_list_tag);
+    // 统计 task_all_list 上的任务数减少1
+    task_all_nums--;
 
     /* 如果不是main任务，则释放所有的空间 */
     if(task != main_task) {
-        free(task->stack_min_addr);
-        free(task);
+        // 做池化处理暂时不释放,当定时器可用之后在释放
+        list_append(&task_pool_list,&task->pool_tag);
+        // free(task->stack_min_addr);
+        // free(task);
     }
 
     //归还tid
@@ -197,8 +202,18 @@ static void task_create(struct task_struct* ptask, task_func function, void* fun
 struct task_struct* task_start(char* name, int prio, task_func function, void* func_arg)
 {
     interrupt_disable();
-    struct task_struct* task = (struct task_struct*)malloc(sizeof(struct task_struct));
-
+    struct task_struct* task;
+    // 这里可以不去 malloc 先去池里面取
+    if(!list_empty(&task_pool_list)) {
+        // 去 task_pool 去取一个 task 
+        task_tag = list_pop(&task_pool_list);
+        task = elem2entry(struct task_struct, pool_tag, task_tag);
+        assert(TASK_DIED != task->status);
+    } else {
+        // 如果池里面没有,就 malloc 一个
+        task = (struct task_struct*)malloc(sizeof(struct task_struct));
+    } 
+    
     init_task(task, name, prio);
     task_create(task, function, func_arg);
 
@@ -211,6 +226,8 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
     assert(!elem_find(&task_all_list, &task->all_list_tag));
     //加入到全部任务队列
     list_append(&task_all_list, &task->all_list_tag);
+    // 统计 task_all_list 中的 task 数量
+    task_all_nums++;
 
     interrupt_enable();
     return task;
@@ -230,6 +247,7 @@ static void make_main_task(void)
     //main函数是当前任务，当前还不再task_ready_list中，只加入task_all_list
     assert(!elem_find(&task_all_list, &main_task->all_list_tag));
     list_append(&task_all_list, &main_task->all_list_tag);
+    task_all_nums++; // 统计 task_all_list 数量
 }
 
 /**
@@ -295,6 +313,8 @@ void task_init(void)
 {
     list_init(&task_ready_list);
     list_init(&task_all_list);
+    list_init(&task_pool_list);
+    task_all_nums = 0;
     tid_pool_init();
     //将当前main函数创建为任务
     make_main_task();
@@ -376,4 +396,23 @@ static void block_task_schedule()
 
 bool current_is_hook(){
    return current_task && current_task->is_hook; 
+}
+// 测试函数
+void clean_dead_task(void)
+{
+    // 如果任务池为空
+    if(list_empty(&task_pool_list)) { 
+        return ;
+    } else {
+        struct task_struct *task;
+        int clean_cnt = task_all_nums/8 > 16 ? 16 : task_all_nums/8;
+        while(list_empty(&task_pool_list) || clean_cnt == 0){
+            task_tag = list_pop(&task_pool_list);
+            clean_cnt--;
+            task = elem2entry(struct task_struct, pool_tag, task_tag);
+            free(task->stack_min_addr);
+            free(task);
+        }
+    }
+    return ;
 }

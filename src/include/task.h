@@ -12,6 +12,7 @@ typedef void task_func(void*);
 
 extern struct list task_ready_list;
 extern struct list task_all_list;
+extern struct list task_pool_list;
 extern struct task_struct* current_task;
 
 enum task_status
@@ -55,6 +56,7 @@ struct task_struct
 
     struct list_elem general_tag;
     struct list_elem all_list_tag;
+    struct list_elem pool_tag; // task 池化处理
 
     //第一次调度的时候使用
     task_func* function;
