@@ -60,10 +60,16 @@ struct task_struct
     task_func* function;
     void* func_args;   // function(func_args);
     uint32_t stack_magic;
+    unsigned int sleep_millisecond; // 用于存储超时时间，粒度为毫秒
     bool first;
 
     // 用于记录此协程是否用户希望被hook
     bool is_hook;
+
+    // 用于记录此协程是否是一个时间片未跑完，但是因为调用了阻塞式系统调用而导致应该被调度
+    bool is_collaborative_schedule;
+
+    // TODO 当然以上三个成员可以分别用一个位表示，以节省字节数
 };
 
 /** 
@@ -97,9 +103,14 @@ struct task_struct* task_start(char* name, int prio, task_func function, void* f
 struct task_struct* tid2task(tid_t tid);
 
 /**
- * schedule - 任务调度
+ * schedule - 抢占式任务调度
  * **/
 void schedule(unsigned long* a);
+
+/**
+ * collaborative_schedule - 协作式任务调度
+ * **/
+void collaborative_schedule(unsigned long* a);
 
 /**
  * task_exit - 任务结束

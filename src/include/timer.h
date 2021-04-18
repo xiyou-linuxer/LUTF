@@ -29,8 +29,8 @@ typedef struct LIST_TIMER
 typedef struct TIMER_NODE
 {
     struct LIST_TIMER ltTimer;  // 定时器双向链表的入口
-    uint32_t uExpires;            // 定时器到期时间
-    uint32_t uPeriod;             // 定时器触发后，再次触发的间隔时长。如果为 0，表示该定时器为一次性的
+    uint32_t uExpires;          // 定时器到期时间
+    uint32_t uPeriod;           // 定时器触发后，再次触发的间隔时长。如果为 0，表示该定时器为一次性的
     void (*timerFn)(void *);    // 定时器回调函数
     void *pParam;               // 回调函数的参数
 } TIMERNODE, *LPTIMERNODE;

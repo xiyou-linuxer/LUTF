@@ -249,7 +249,14 @@ void destroy_timer_manager()
     free(timer_manager);
 }
 
-// 创建一个定时器。fnTimer 回调函数地址。pParam 回调函数的参数。uDueTime 首次触发的超时时间间隔。uPeriod 定时器循环周期，若为0，则该定时器只运行一次。
+/**
+ * 功能为创建一个定时器
+ * fnTimer 回调函数地址。
+ * pParam 回调函数的参数。
+ * uDueTime 首次触发的超时时间间隔。
+ * uPeriod 定时器循环周期，若为0，则该定时器只运行一次。
+ * LPTIMERNODE
+ * **/
 LPTIMERNODE create_timer(void (*timerFn)(void*), void *pParam, uint32_t uDueTime, uint32_t uPeriod)
 {
     LPTIMERNODE pTmr = NULL;
@@ -289,26 +296,47 @@ int32_t delete_timer(LPTIMERNODE lpTimer)
         return -1;
 }
 
+
+/**
+ * 仅用于一处，hook以后加入到定时器的地方需要调用；
+ * **/
+void collaborative_schedule_helper(void* para){
+    // 定时时间到期以后被调用，负责把超时任务插入到就绪队列中去
+    struct task_struct* task = (struct task_struct*)para;
+
+    assert(!elem_find(&task_ready_list, &task->general_tag));
+    list_append(&task_ready_list, &task->general_tag);
+    task->ticks = task->priority;
+    task->status = TASK_READY;
+    task->is_collaborative_schedule = false;
+    task->sleep_millisecond = 0;
+}
+
 /**
  * interrupt_timer_handler - 时钟中断处理函数
  * **/
 void interrupt_timer_handler(unsigned long* a)
 {
+    //printf("触发一次信号处理函数,当前的任务名称为%s\n",current_task->name);
     assert(current_task->stack_magic == 0x19991120);
     current_task->elapsed_ticks++;   //记录此任务占用cpu的时间
     ticks++;   //第一次处理时间中断后至今的滴答数，总滴答数
     /* 时间片用尽执行 schedule() */
-    if(current_task->ticks == 0) {
-        // 调度前先走定时器模块
-        if(NULL != timer_manager) {
-            if(!timer_manager->uExitFlag) {
-                run_timer();
-            } else {
-                destroy_timer_manager();
-            }
+    // 调度前先走定时器模块
+    if(NULL != timer_manager) {
+        if(!timer_manager->uExitFlag) {
+            run_timer();
+        } else {
+            destroy_timer_manager();
         }
+    }
+    if(current_task->is_collaborative_schedule == false && current_task->ticks == 0) {
         schedule(a);
-    } else {
+    } else if(current_task->is_collaborative_schedule == false){    // 正常的削减时间片
         current_task->ticks--;
+    } else {
+        // 把当前任务加入定时器，然后正常调度一个处于全局等待队列上的数据
+        LPTIMERNODE timenode = create_timer(collaborative_schedule_helper, (void*)current_task, current_task->sleep_millisecond, 0); 
+        collaborative_schedule(a);
     }
 }
