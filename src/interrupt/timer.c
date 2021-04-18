@@ -206,14 +206,6 @@ static void run_timer()
     lock_release(&timer_manager->lock);
 }
 
-// 测试函数
-void timer_test(void *pParam)
-{
-    LPTIMERMANAGER pMgr;
-    pMgr = (LPTIMERMANAGER)pParam;
-    printf("Timer expire! Jiffies: %u\n", pMgr->uJiffies);
-}
-
 // 创建定时器管理器
 void timer_init(void)
 {
@@ -229,8 +221,7 @@ void timer_init(void)
         init_array_list_timer(timer_manager->arrListTimer4, sizeof(timer_manager->arrListTimer4)/sizeof(timer_manager->arrListTimer4[0]));
         init_array_list_timer(timer_manager->arrListTimer5, sizeof(timer_manager->arrListTimer5)/sizeof(timer_manager->arrListTimer5[0]));
     }
-    // timer_test
-    LPTIMERNODE pTn = create_timer(timer_test, timer_manager, 1000, 0);
+    LPTIMERNODE pTn = create_timer(clean_dead_task, timer_manager, 150000, 150000);
     return ;
 }
 

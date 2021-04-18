@@ -434,7 +434,7 @@ static void block_task_schedule()
 bool current_is_hook(){
    return current_task && current_task->is_hook; 
 }
-// 测试函数
+// 清除死亡任务函数
 void clean_dead_task(void)
 {
     // 如果任务池为空
