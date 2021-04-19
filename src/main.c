@@ -38,7 +38,7 @@ int main()
 {
     init();
     task_start("tast1", 31, test, "argA ");
-    for(int i = 0; i < 100; i++) {
+    for(int i = 0; i < 1000000; i++) {
         task_start("abc", 31, test1, "a ");
     }
     while(1) {

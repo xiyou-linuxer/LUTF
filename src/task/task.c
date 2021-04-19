@@ -323,6 +323,44 @@ void task_init(void)
 }
 
 /**
+ * get_next_task - 获取下一个任务
+ * **/ 
+struct task_struct* get_next_task() {
+    task_tag = list_pop(&task_ready_list);
+    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
+    next->status = TASK_RUNNING;
+    return next;
+}
+
+/**
+ * get_next_task_011 - 模仿 Linux 0.11 版调度,获取下一个任务,TODO: 需要Code Review 一下,同时检查一下池化的代码
+ * **/ 
+struct task_struct* get_next_task_011() {
+    
+    struct list_elem* elem = task_all_list.head.next;
+    int c = -1;
+    struct task_struct* next_task;
+    while(elem != &task_all_list.tail) {
+        struct task_struct* task = elem2entry(struct task_struct, all_list_tag, elem);
+        if(task->status == TASK_WAITING ||
+            task->status == TASK_BLOCKED ||
+            task->status == TASK_HANGING ||
+            task->is_collaborative_schedule == true) {    
+            task->ticks = task->ticks/2 + task->priority;
+        }
+        if(task->status == TASK_READY && task->ticks > c) {   //func返回true，则认为该元素在回调函数中符合条件，命中，停止继续遍历
+            c = task->ticks;
+            next_task = task;
+        }
+        elem = elem->next;
+    }
+    list_remove(&next_task->general_tag);
+
+    next_task->status = TASK_RUNNING;
+    return next_task;
+}
+
+/**
  * schedule - 任务调度(signal handle)
  * **/
 void schedule(unsigned long* a)
@@ -343,10 +381,7 @@ void schedule(unsigned long* a)
         };   // TODO 当main函数执行sleep的时候可能会卡死，因为hook后的sleep不会把current_task插入ready_list
     }
 
-    /* 获取下一个任务 */
-    task_tag = list_pop(&task_ready_list);
-    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
-    next->status = TASK_RUNNING;
+    struct task_struct* next = get_next_task();
     //从信号栈esp+72获得sigcontext的内容
     p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
     struct sigcontext* context = (struct sigcontext*)p;
@@ -358,7 +393,7 @@ void schedule(unsigned long* a)
 }
 
 /**
- * collaborative_schedule - 协作式时的任务调度，与schedule的区别就是不会把current_task插入就绪队列
+ * collaborative_schedule - 协作式时的任务调度，与 schedule 的区别就是不会把 current_task 插入就绪队列
  * 而是等在超时时间结束以后再插入就绪队列。
  * **/
 void collaborative_schedule(unsigned long* a)
@@ -370,10 +405,7 @@ void collaborative_schedule(unsigned long* a)
         }
     }
 
-    /* 获取下一个任务 */
-    task_tag = list_pop(&task_ready_list);
-    struct task_struct* next = elem2entry(struct task_struct, general_tag, task_tag);
-    next->status = TASK_RUNNING;
+    struct task_struct* next = get_next_task();
     //从信号栈esp+72获得sigcontext的内容
     p = (unsigned char*)((unsigned char*)a + CONTEXT_OFFSET);
     struct sigcontext* context = (struct sigcontext*)p;
