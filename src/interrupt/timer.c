@@ -245,8 +245,8 @@ void destroy_timer_manager()
  * fnTimer 回调函数地址。
  * pParam 回调函数的参数。
  * uDueTime 首次触发的超时时间间隔。
- * uPeriod 定时器循环周期，若为0，则该定时器只运行一次。
- * LPTIMERNODE
+ * uPeriod 定时器循环周期，若为0，则该定时器只运行一次；若为其他数字，则周期性的会在对应时间间隔进行触发。
+ * 时间单位为毫秒
  * **/
 LPTIMERNODE create_timer(void (*timerFn)(void*), void *pParam, uint32_t uDueTime, uint32_t uPeriod)
 {

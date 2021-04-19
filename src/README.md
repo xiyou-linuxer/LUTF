@@ -60,7 +60,8 @@ make all
 #### 创建任务示例
 
  - 创建 100w 个任务，并执行。
-  由于在任务创建函数中将终端屏蔽，即忽略时钟信号，以保证任务就绪链表同步，同时信号处理函数的周期为 10ms，所以在创建 100w 个任务时会消耗较长的时间，稍微等待即可。
+  由于在任务创建函数中将终端屏蔽，即忽略时钟信号，以保证任务就绪链表同步，同时信号处理函数的周期为 10ms，所以在创建 100w 个任务时会消耗较长的时间，稍微等待即可。配置更低的任务数可以看到更明显的效果。
+
 ```c
 #include "task.h"
 #include "console.h"
@@ -70,6 +71,7 @@ make all
 
 void test1(void* args)
 {
+    co_enable_hook_sys();
     char* str = args;
     while(1) {
         sleep(1);
@@ -77,11 +79,13 @@ void test1(void* args)
     }
 }
 
+const static int thread_number = 1000000; 
+
 int main()
 {
     init();
     task_start("tast1", 31, test1, "argB ");
-    for(int i = 0; i < 1000000; i++) {
+    for(int i = 0; i < thread_number; i++) {
         task_start("abc", 31, test1, "a ");
     }
     while(1) {
@@ -96,7 +100,7 @@ int main()
 ```bash
 cd src
 make clean && make all
-gcc main.c -o main -ldl -I include/ libtask.a
+gcc main.c -o main -Wl,--no-as-needed -ldl -I include/ libtask.a
 ```
 
 * 运行
@@ -110,12 +114,19 @@ gcc main.c -o main -ldl -I include/ libtask.a
 ```
 
 #### Hook 模块
+Hook模块应用于task中调用阻塞式系统调用的场景，此时task不应该继续执行原本分配的时间片，而应该主动让出自己的执行权，并在所等待时间就绪时重新加入全局就绪队列，样例可见example/test_sleep.c。
+
+* 编译：
 ```
-目前还处于编码阶段，所以这里先不写正式描述，后面会添加样例，以下是执行步骤
 cd src
 rm libtask.a
 make all
-gcc example/testsleep.c -o main -std=gnu99 -Wl,--no-as-needed -ldl -I include/ libtask.a
+gcc example/test_sleep.c -o test_sleep -std=gnu99 -Wl,--no-as-needed -ldl -I include/ libtask.a
+```
+
+* 运行
+```bash
+./test_sleep
 ```
 
 #### 参与贡献
